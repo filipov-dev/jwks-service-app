@@ -5,14 +5,17 @@
 
 use actix_web::*;
 use serde::*;
+use uuid::Uuid;
 use diesel::prelude::*;
 use crate::models::*;
 use crate::schema::jwks::dsl::*;
 use crate::db::establish_connection;
+use crate::crypto::generate_rsa_keypair;
 
 mod models;
 mod schema;
 mod db;
+mod crypto;
 
 /// Обработчик для получения JWK.
 ///
@@ -31,36 +34,62 @@ async fn jwks_handler() -> impl Responder {
         .load::<Jwk>(connection)
         .expect("Error loading jwks");
 
+    // Убираем приватный ключ из ответа
+    let public_jwks = results.into_iter().map(|jwk| Jwk {
+        id: jwk.id,
+        kty: jwk.kty,
+        alg: jwk.alg,
+        kid: jwk.kid,
+        n: jwk.n,
+        e: jwk.e,
+        d: "".to_string(), // Приватный ключ не возвращаем
+    }).collect::<Vec<_>>();
+
     let jwks_list = Jwks {
-        keys: results,
+        keys: public_jwks,
     };
 
     HttpResponse::Ok().json(jwks_list)
 }
 
-/// Обработчик для добавления нового JWK.
+/// Обработчик для генерации JWK.
 ///
 /// # Аргументы
 ///
-/// * `new_jwk` - Новый JWK в формате JSON.
+/// * `input` - Входные данные с названием алгоритма.
 ///
 /// # Возвращает
 ///
-/// Возвращает статус `201 Created`, если ключ успешно добавлен.
+/// Возвращает статус `201 Created`, если ключ успешно сгенерирован и сохранен.
 ///
 /// # Пример
 ///
 /// ```bash
-/// curl -X POST -H "Content-Type: application/json" -d '{"id": "550e8400-e29b-41d4-a716-446655440000", "kty": "RSA", "alg": "RS256", "kid": "1", "n": "some_base64_encoded_modulus", "e": "some_base64_encoded_exponent"}' http://localhost:8080/jwks
+/// curl -X POST -H "Content-Type: application/json" http://localhost:8080/jwks
 /// ```
-async fn add_jwk_handler(new_jwk: web::Json<Jwk>) -> impl Responder {
+async fn add_jwk_handler() -> impl Responder {
+    // Генерация RSA-ключей
+    let (public_key, private_key) = generate_rsa_keypair(2048);
+
+    // Создание JWK
+    let jwk = Jwk {
+        id: String::from(Uuid::new_v4()),
+        kty: "RSA".to_string(),
+        alg: "RS256".to_string(),
+        kid: Uuid::new_v4().to_string(), // Уникальный идентификатор ключа
+        n: public_key, // Модуль ключа (публичный ключ)
+        e: "AQAB".to_string(), // Публичная экспонента (обычно "AQAB" для RSA)
+        d: private_key, // Приватный ключ
+    };
+
+    // Сохранение JWK в базу данных
     let connection = &mut establish_connection();
     diesel::insert_into(jwks)
-        .values(&new_jwk.into_inner())
+        .values(&jwk)
         .execute(connection)
         .expect("Error saving new jwk");
 
-    HttpResponse::Created().body("JWK added")
+    HttpResponse::Created().json(jwk)
 }
 
 /// Точка входа в приложение.
