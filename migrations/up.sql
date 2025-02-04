@@ -4,5 +4,6 @@ CREATE TABLE jwks (
   alg VARCHAR NOT NULL,
   kid VARCHAR NOT NULL,
   n TEXT NOT NULL,
-  e TEXT NOT NULL
+  e TEXT NOT NULL,
+  d TEXT NOT NULL -- Приватный ключ
 );
