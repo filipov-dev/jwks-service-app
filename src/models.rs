@@ -4,7 +4,7 @@ use serde::*;
 /// Структура для входных данных эндпоинта `/jwks`.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AlgorithmInput {
-    /// Название алгоритма (например, "RS256").
+    /// Название алгоритма (например, "RS256", "ES256", "Ed25519").
     pub alg: String,
 }
 

@@ -4,13 +4,13 @@
 //! Ключи хранятся в базе данных PostgreSQL, а для работы с базой данных используется Diesel.
 
 use actix_web::*;
-use serde::*;
 use uuid::Uuid;
 use diesel::prelude::*;
 use crate::models::*;
 use crate::schema::jwks::dsl::*;
 use crate::db::establish_connection;
-use crate::crypto::generate_rsa_keypair;
+use crate::crypto::{generate_rsa_keypair, generate_ec_keypair, generate_ed25519_keypair};
+use openssl::nid::Nid;
 
 mod models;
 mod schema;
@@ -65,20 +65,37 @@ async fn jwks_handler() -> impl Responder {
 /// # Пример
 ///
 /// ```bash
-/// curl -X POST -H "Content-Type: application/json" http://localhost:8080/jwks
+/// curl -X POST -H "Content-Type: application/json" -d '{"alg": "RS256"}' http://localhost:8080/jwks
 /// ```
-async fn add_jwk_handler() -> impl Responder {
-    // Генерация RSA-ключей
-    let (public_key, private_key) = generate_rsa_keypair(2048);
+async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder {
+    let algorithm = &input.alg;
+
+    // Генерация ключей в зависимости от алгоритма
+    let (public_key, private_key) = match algorithm.as_str() {
+        "RS256" | "RS384" | "RS512" => generate_rsa_keypair(2048),
+        "ES256" => generate_ec_keypair(Nid::X9_62_PRIME256V1),
+        "ES384" => generate_ec_keypair(Nid::SECP384R1),
+        "ES512" => generate_ec_keypair(Nid::SECP521R1),
+        "Ed25519" => generate_ed25519_keypair(),
+        _ => return HttpResponse::BadRequest().body("Unsupported algorithm"),
+    };
 
     // Создание JWK
     let jwk = Jwk {
         id: String::from(Uuid::new_v4()),
-        kty: "RSA".to_string(),
-        alg: "RS256".to_string(),
+        kty: match algorithm.as_str() {
+            "RS256" | "RS384" | "RS512" => "RSA".to_string(),
+            "ES256" | "ES384" | "ES512" => "EC".to_string(),
+            "Ed25519" => "OKP".to_string(), // Octet Key Pair (Ed25519)
+            _ => return HttpResponse::BadRequest().body("Unsupported algorithm"),
+        },
+        alg: algorithm.clone(),
         kid: Uuid::new_v4().to_string(), // Уникальный идентификатор ключа
         n: public_key, // Модуль ключа (публичный ключ)
-        e: "AQAB".to_string(), // Публичная экспонента (обычно "AQAB" для RSA)
+        e: match algorithm.as_str() {
+            "RS256" | "RS384" | "RS512" => "AQAB".to_string(), // Публичная экспонента для RSA
+            _ => "".to_string(), // Для EC и Ed25519 это поле не используется
+        },
         d: private_key, // Приватный ключ
     };
 
