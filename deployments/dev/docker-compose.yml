@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: jwk_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .  # Указываем корневую директорию проекта
+      dockerfile: ./Dockerfile  # Указываем путь к Dockerfile
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/jwk_db
+      RUN_MIGRATIONS_ON_START: 1
+    command: tail -f /dev/null
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../..:/app  # Синхронизируем код на хосте с кодом в контейнере
+    depends_on:
+      - db
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    ports:
+      - "8081:8080"
+    environment:
+      API_URL: http://localhost:8080/api-docs/openapi.json  # Указываем URL OpenAPI-спецификации
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:
