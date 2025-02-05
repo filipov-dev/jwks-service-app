@@ -19,6 +19,8 @@ services:
     environment:
       DATABASE_URL: postgres://user:password@db:5432/jwk_db
       RUN_MIGRATIONS_ON_START: 1
+      PRIVATE_KEY_EXPIRATION_SECONDS: 120 # 86400  # 1 день (в секундах)
+      KEY_EXPIRATION_SECONDS: 60 # 172800  # 2 дня (в секундах)
     command: tail -f /dev/null
     ports:
       - "8080:8080"

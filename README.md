@@ -63,7 +63,18 @@ docker-compose up --build
    curl http://localhost:8080/.well-known/jwks.json
    ```
 
-3. Откройте Swagger UI в браузере: `http://localhost:8081`.
+3. Отправьте DELETE-запрос для удаления JWK:
+
+   Чтобы удалить ключ (мягкое удаление), отправьте DELETE-запрос:
+   
+   ```bash
+   curl -X DELETE http://localhost:8080/jwks/{id}
+   ```
+   
+   Где {id} — уникальный идентификатор ключа.
+
+
+4. Откройте Swagger UI в браузере: `http://localhost:8081`.
 
 ### 5. Остановка проекта
 

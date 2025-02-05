@@ -1,0 +1,1 @@
+ALTER TABLE jwks ADD COLUMN deleted_at TIMESTAMP;

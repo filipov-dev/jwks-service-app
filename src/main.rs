@@ -5,14 +5,11 @@
 
 use actix_web::*;
 use actix_cors::Cors;
-use uuid::Uuid;
 use diesel::prelude::*;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use crate::models::*;
-use crate::schema::jwks::dsl::*;
-use crate::db::establish_connection;
-use crate::crypto::{generate_rsa_keypair, generate_ec_keypair, generate_ed25519_keypair};
-use openssl::nid::Nid;
+use crate::handlers::*;
+use dotenv::dotenv;
 use std::env;
 use utoipa::OpenApi;
 
@@ -20,6 +17,7 @@ mod models;
 mod schema;
 mod db;
 mod crypto;
+mod handlers;
 
 // Встроенные миграции
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
@@ -28,7 +26,9 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 #[openapi(
     paths(
         jwks_handler,
-        add_jwk_handler
+        get_jwk_by_id_handler,
+        add_jwk_handler,
+        delete_jwk_handler
     ),
     components(
         schemas(Jwk, Jwks, AlgorithmInput)
@@ -38,113 +38,6 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
     )
 )]
 struct ApiDoc;
-
-/// Обработчик для получения JWK.
-///
-/// # Возвращает
-///
-/// Возвращает JSON с набором JWK.
-///
-/// # Пример
-///
-/// ```bash
-/// curl http://localhost:8080/.well-known/jwks.json
-/// ```
-#[utoipa::path(
-    get,
-    path = "/.well-known/jwks.json",
-    responses(
-        (status = 200, description = "Список JWK", body = Jwks)
-    )
-)]
-pub async fn jwks_handler() -> impl Responder {
-    let connection = &mut establish_connection();
-    let results = jwks
-        .load::<Jwk>(connection)
-        .expect("Error loading jwks");
-
-    // Убираем приватный ключ из ответа
-    let public_jwks = results.into_iter().map(|jwk| Jwk {
-        id: jwk.id,
-        kty: jwk.kty,
-        alg: jwk.alg,
-        kid: jwk.kid,
-        n: jwk.n,
-        e: jwk.e,
-        d: "".to_string(), // Приватный ключ не возвращаем
-    }).collect::<Vec<_>>();
-
-    let jwks_list = Jwks {
-        keys: public_jwks,
-    };
-
-    HttpResponse::Ok().json(jwks_list)
-}
-
-/// Обработчик для генерации JWK.
-///
-/// # Аргументы
-///
-/// * `input` - Входные данные с названием алгоритма.
-///
-/// # Возвращает
-///
-/// Возвращает статус `201 Created`, если ключ успешно сгенерирован и сохранен.
-///
-/// # Пример
-///
-/// ```bash
-/// curl -X POST -H "Content-Type: application/json" -d '{"alg": "RS256"}' http://localhost:8080/jwks
-/// ```
-#[utoipa::path(
-    post,
-    path = "/jwks",
-    request_body = AlgorithmInput,
-    responses(
-        (status = 201, description = "JWK успешно добавлен", body = Jwk)
-    )
-)]
-pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder {
-    let algorithm = &input.alg;
-
-    // Генерация ключей в зависимости от алгоритма
-    let (public_key, private_key) = match algorithm.as_str() {
-        "RS256" | "RS384" | "RS512" => generate_rsa_keypair(2048),
-        "ES256" => generate_ec_keypair(Nid::X9_62_PRIME256V1),
-        "ES384" => generate_ec_keypair(Nid::SECP384R1),
-        "ES512" => generate_ec_keypair(Nid::SECP521R1),
-        "Ed25519" => generate_ed25519_keypair(),
-        _ => return HttpResponse::BadRequest().body("Unsupported algorithm"),
-    };
-
-    // Создание JWK
-    let jwk = Jwk {
-        id: Uuid::new_v4(),
-        kty: match algorithm.as_str() {
-            "RS256" | "RS384" | "RS512" => "RSA".to_string(),
-            "ES256" | "ES384" | "ES512" => "EC".to_string(),
-            "Ed25519" => "OKP".to_string(), // Octet Key Pair (Ed25519)
-            _ => return HttpResponse::BadRequest().body("Unsupported algorithm"),
-        },
-        alg: algorithm.clone(),
-        kid: Uuid::new_v4().to_string(), // Уникальный идентификатор ключа
-        n: public_key, // Модуль ключа (публичный ключ)
-        e: match algorithm.as_str() {
-            "RS256" | "RS384" | "RS512" => "AQAB".to_string(), // Публичная экспонента для RSA
-            _ => "".to_string(), // Для EC и Ed25519 это поле не используется
-        },
-        d: private_key, // Приватный ключ
-    };
-
-    // Сохранение JWK в базу данных
-    let connection = &mut establish_connection();
-    diesel::insert_into(jwks)
-        .values(&jwk)
-        .execute(connection)
-        .expect("Error saving new jwk");
-
-    HttpResponse::Created().json(jwk)
-}
 
 /// Эндпоинт для предоставления OpenAPI-спецификации
 async fn openapi_spec() -> impl Responder {
@@ -158,6 +51,8 @@ async fn openapi_spec() -> impl Responder {
 /// Запускает веб-сервер на `0.0.0.0:8080`.
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
+
     // Проверяем, нужно ли выполнять миграции
     if env::var("RUN_MIGRATIONS_ON_START").unwrap_or_default() == "1" {
         let connection = &mut db::establish_connection();
@@ -179,14 +74,18 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         let cors = Cors::default()
             .allow_any_origin()  // Разрешаем запросы с любого источника
-            .allowed_methods(vec!["GET", "POST"])  // Разрешаем GET и POST
+            .allowed_methods(vec!["GET", "POST", "DELETE"])  // Разрешаем GET и POST
             .allow_any_header()  // Разрешаем любые заголовки
             .max_age(3600);  // Устанавливаем время кэширования CORS
 
         App::new()
             .wrap(cors) // Добавляем middleware CORS
             .route("/.well-known/jwks.json", web::get().to(jwks_handler))
+
             .route("/jwks", web::post().to(add_jwk_handler))
+            .route("/jwks/{id}", web::get().to(get_jwk_by_id_handler))  // Эндпоинт для получения ключа по ID
+            .route("/jwks/{id}", web::delete().to(delete_jwk_handler))  // Эндпоинт для удаления ключа
+
             .route("/api-docs/openapi.json", web::get().to(openapi_spec)) // Эндпоинт для OpenAPI-спецификации
     })
         .bind("0.0.0.0:8080")?

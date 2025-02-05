@@ -1,0 +1,1 @@
+ALTER TABLE jwks DROP COLUMN created_at;
