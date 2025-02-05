@@ -2,6 +2,7 @@ use diesel::{Insertable, Queryable};
 use serde::*;
 use utoipa::ToSchema;
 use uuid::Uuid;
+use chrono::NaiveDateTime;
 
 /// Структура для входных данных эндпоинта `/jwks`.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -39,6 +40,19 @@ pub struct Jwk {
     pub e: String,
     /// Приватный ключ в формате Base64.
     pub d: String,
+    /// Дата создания ключа.
+    #[serde(skip_serializing)]  // Поле не будет возвращаться в ответах API
+    #[schema(value_type = String)]  // Указываем, что NaiveDateTime сериализуется как строка
+    pub created_at: NaiveDateTime,
+    /// Дата удаления ключа. Если `None`, ключ активен.
+    #[serde(skip_serializing)]  // Поле не будет возвращаться в ответах API
+    pub deleted_at: Option<NaiveDateTime>,
+    /// Время протухания приватного ключа.
+    #[serde(skip_serializing)]  // Поле не будет возвращаться в ответах API
+    pub private_key_expires_at: Option<NaiveDateTime>,
+    /// Время протухания всего ключа.
+    #[serde(skip_serializing)]  // Поле не будет возвращаться в ответах API
+    pub key_expires_at: Option<NaiveDateTime>,
 }
 
 /// Представляет собой набор JWK.

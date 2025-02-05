@@ -17,5 +17,9 @@ diesel::table! {
         e -> Text,
         /// Приватный ключ в формате Base64.
         d -> Text,
+        created_at -> Timestamp,
+        deleted_at -> Nullable<Timestamp>,
+        private_key_expires_at -> Nullable<Timestamp>,
+        key_expires_at -> Nullable<Timestamp>,
     }
 }
