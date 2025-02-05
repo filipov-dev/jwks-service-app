@@ -4,18 +4,40 @@
 //! Ключи хранятся в базе данных PostgreSQL, а для работы с базой данных используется Diesel.
 
 use actix_web::*;
+use actix_cors::Cors;
 use uuid::Uuid;
 use diesel::prelude::*;
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use crate::models::*;
 use crate::schema::jwks::dsl::*;
 use crate::db::establish_connection;
 use crate::crypto::{generate_rsa_keypair, generate_ec_keypair, generate_ed25519_keypair};
 use openssl::nid::Nid;
+use std::env;
+use utoipa::OpenApi;
 
 mod models;
 mod schema;
 mod db;
 mod crypto;
+
+// Встроенные миграции
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        jwks_handler,
+        add_jwk_handler
+    ),
+    components(
+        schemas(Jwk, Jwks, AlgorithmInput)
+    ),
+    tags(
+        (name = "JWK Service", description = "API for managing JSON Web Keys")
+    )
+)]
+struct ApiDoc;
 
 /// Обработчик для получения JWK.
 ///
@@ -28,7 +50,14 @@ mod crypto;
 /// ```bash
 /// curl http://localhost:8080/.well-known/jwks.json
 /// ```
-async fn jwks_handler() -> impl Responder {
+#[utoipa::path(
+    get,
+    path = "/.well-known/jwks.json",
+    responses(
+        (status = 200, description = "Список JWK", body = Jwks)
+    )
+)]
+pub async fn jwks_handler() -> impl Responder {
     let connection = &mut establish_connection();
     let results = jwks
         .load::<Jwk>(connection)
@@ -67,7 +96,15 @@ async fn jwks_handler() -> impl Responder {
 /// ```bash
 /// curl -X POST -H "Content-Type: application/json" -d '{"alg": "RS256"}' http://localhost:8080/jwks
 /// ```
-async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder {
+#[utoipa::path(
+    post,
+    path = "/jwks",
+    request_body = AlgorithmInput,
+    responses(
+        (status = 201, description = "JWK успешно добавлен", body = Jwk)
+    )
+)]
+pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder {
     let algorithm = &input.alg;
 
     // Генерация ключей в зависимости от алгоритма
@@ -82,7 +119,7 @@ async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder {
 
     // Создание JWK
     let jwk = Jwk {
-        id: String::from(Uuid::new_v4()),
+        id: Uuid::new_v4(),
         kty: match algorithm.as_str() {
             "RS256" | "RS384" | "RS512" => "RSA".to_string(),
             "ES256" | "ES384" | "ES512" => "EC".to_string(),
@@ -109,17 +146,50 @@ async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder {
     HttpResponse::Created().json(jwk)
 }
 
+/// Эндпоинт для предоставления OpenAPI-спецификации
+async fn openapi_spec() -> impl Responder {
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(ApiDoc::openapi().to_json().unwrap())
+}
+
 /// Точка входа в приложение.
 ///
-/// Запускает веб-сервер на `127.0.0.1:8080`.
+/// Запускает веб-сервер на `0.0.0.0:8080`.
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Проверяем, нужно ли выполнять миграции
+    if env::var("RUN_MIGRATIONS_ON_START").unwrap_or_default() == "1" {
+        let connection = &mut db::establish_connection();
+        println!("Running migrations...");
+
+        // Выполняем миграции
+        connection.run_pending_migrations(MIGRATIONS).expect("Failed to run migrations");
+
+        // Получаем список применённых миграций
+        let applied_migrations = connection.applied_migrations().expect("Failed to get applied migrations");
+        println!("Applied migrations:");
+        for migration in applied_migrations {
+            println!("- {}", migration);
+        }
+
+        println!("Migrations completed.");
+    }
+
     HttpServer::new(|| {
+        let cors = Cors::default()
+            .allow_any_origin()  // Разрешаем запросы с любого источника
+            .allowed_methods(vec!["GET", "POST"])  // Разрешаем GET и POST
+            .allow_any_header()  // Разрешаем любые заголовки
+            .max_age(3600);  // Устанавливаем время кэширования CORS
+
         App::new()
+            .wrap(cors) // Добавляем middleware CORS
             .route("/.well-known/jwks.json", web::get().to(jwks_handler))
             .route("/jwks", web::post().to(add_jwk_handler))
+            .route("/api-docs/openapi.json", web::get().to(openapi_spec)) // Эндпоинт для OpenAPI-спецификации
     })
-        .bind("127.0.0.1:8080")?
+        .bind("0.0.0.0:8080")?
         .run()
         .await
 }
