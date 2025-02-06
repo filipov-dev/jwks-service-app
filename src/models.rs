@@ -1,15 +1,16 @@
+//! This module defines the data models used in the JWK microservice.
+
 use diesel::{Insertable, Queryable};
 use serde::*;
 use utoipa::ToSchema;
 use uuid::Uuid;
 use chrono::NaiveDateTime;
 
-/// Структура для входных данных эндпоинта `/jwks`.
+/// Input data for the `/jwks` endpoint.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AlgorithmInput {
-    /// Название алгоритма (например, "RS256", "ES256", "Ed25519").
+    /// Algorithm name:
     ///
-    /// Возможные значения:
     /// - `RS256`
     /// - `RS384`
     /// - `RS512`
@@ -21,43 +22,43 @@ pub struct AlgorithmInput {
     pub alg: String,
 }
 
-/// Представляет собой один JWK (JSON Web Key).
+/// Represents a single JWK (JSON Web Key).
 #[derive(Debug, Serialize, Deserialize, Queryable, Insertable, ToSchema)]
 #[diesel(table_name = crate::schema::jwks)]
 pub struct Jwk {
-    /// Уникальный идентификатор ключа.
-    #[schema(value_type = String)]  // Указываем, что Uuid сериализуется как строка
+    /// Unique key identifier.
+    #[schema(value_type = String)]  // Indicates that Uuid is serialized as a string
     pub id: Uuid,
-    /// Тип ключа (например, "RSA").
+    /// Key type (e.g., "RSA").
     pub kty: String,
-    /// Алгоритм, используемый с ключом (например, "RS256").
+    /// Algorithm used with the key (e.g., "RS256").
     pub alg: String,
-    /// Идентификатор ключа (Key ID).
+    /// Key ID.
     pub kid: String,
-    /// Модуль ключа в формате Base64.
+    /// Key modulus in Base64 format.
     pub n: String,
-    /// Публичная экспонента ключа в формате Base64.
+    /// Public exponent in Base64 format.
     pub e: String,
-    /// Приватный ключ в формате Base64.
+    /// Private key in Base64 format.
     pub d: String,
-    /// Дата создания ключа.
-    #[serde(skip_serializing)]  // Поле не будет возвращаться в ответах API
-    #[schema(value_type = String)]  // Указываем, что NaiveDateTime сериализуется как строка
+    /// Key creation date.
+    #[serde(skip_serializing)]  // Field will not be returned in API responses
+    #[schema(value_type = String)]  // Indicates that NaiveDateTime is serialized as a string
     pub created_at: NaiveDateTime,
-    /// Дата удаления ключа. Если `None`, ключ активен.
-    #[serde(skip_serializing)]  // Поле не будет возвращаться в ответах API
+    /// Key deletion date. If `None`, the key is active.
+    #[serde(skip_serializing)]  // Field will not be returned in API responses
     pub deleted_at: Option<NaiveDateTime>,
-    /// Время протухания приватного ключа.
-    #[serde(skip_serializing)]  // Поле не будет возвращаться в ответах API
+    /// Private key expiration date.
+    #[serde(skip_serializing)]  // Field will not be returned in API responses
     pub private_key_expires_at: Option<NaiveDateTime>,
-    /// Время протухания всего ключа.
-    #[serde(skip_serializing)]  // Поле не будет возвращаться в ответах API
+    /// Key expiration date.
+    #[serde(skip_serializing)]  // Field will not be returned in API responses
     pub key_expires_at: Option<NaiveDateTime>,
 }
 
-/// Представляет собой набор JWK.
+/// Represents a set of JWKs.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Jwks {
-    /// Список JWK.
+    /// List of JWKs.
     pub keys: Vec<Jwk>,
 }

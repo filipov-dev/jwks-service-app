@@ -1,17 +1,19 @@
+//! This module provides cryptographic functionality for generating keys.
+
 use openssl::rsa::Rsa;
 use openssl::ec::{EcGroup, EcKey};
 use openssl::nid::Nid;
 use base64;
 
-/// Генерирует RSA-ключи и возвращает их в формате Base64.
+/// Generates an RSA key pair and returns them in Base64 format.
 ///
-/// # Аргументы
+/// # Arguments
 ///
-/// * `key_size` - Размер ключа в битах (например, 2048).
+/// * `key_size` - The size of the key in bits (e.g., 2048).
 ///
-/// # Возвращает
+/// # Returns
 ///
-/// Кортеж из (публичный ключ в формате Base64, приватный ключ в формате Base64).
+/// A tuple containing the public key and private key in Base64 format.
 pub fn generate_rsa_keypair(key_size: u32) -> (String, String) {
     let rsa = Rsa::generate(key_size).expect("Failed to generate RSA key");
     let private_key = rsa.private_key_to_der().expect("Failed to serialize private key");
@@ -23,15 +25,15 @@ pub fn generate_rsa_keypair(key_size: u32) -> (String, String) {
     (public_key_b64, private_key_b64)
 }
 
-/// Генерирует EC-ключи и возвращает их в формате Base64.
+/// Generates an EC key pair and returns them in Base64 format.
 ///
-/// # Аргументы
+/// # Arguments
 ///
-/// * `curve` - Название кривой (например, "P-256", "P-384").
+/// * `curve` - The elliptic curve to use (e.g., `Nid::X9_62_PRIME256V1` for P-256).
 ///
-/// # Возвращает
+/// # Returns
 ///
-/// Кортеж из (публичный ключ в формате Base64, приватный ключ в формате Base64).
+/// A tuple containing the public key and private key in Base64 format.
 pub fn generate_ec_keypair(curve: Nid) -> (String, String) {
     let group = EcGroup::from_curve_name(curve).expect("Failed to create EC group");
     let ec_key = EcKey::generate(&group).expect("Failed to generate EC key");
@@ -44,11 +46,11 @@ pub fn generate_ec_keypair(curve: Nid) -> (String, String) {
     (public_key_b64, private_key_b64)
 }
 
-/// Генерирует Ed25519-ключи и возвращает их в формате Base64.
+/// Generates an Ed25519 key pair and returns them in Base64 format.
 ///
-/// # Возвращает
+/// # Returns
 ///
-/// Кортеж из (публичный ключ в формате Base64, приватный ключ в формате Base64).
+/// A tuple containing the public key and private key in Base64 format.
 pub fn generate_ed25519_keypair() -> (String, String) {
     let key = openssl::pkey::PKey::generate_ed25519().expect("Failed to generate Ed25519 key");
     let private_key = key.private_key_to_der().expect("Failed to serialize private key");
