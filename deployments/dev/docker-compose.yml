@@ -4,39 +4,39 @@ services:
   db:
     image: postgres:13
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: jwk_db
+      POSTGRES_USER: user  # PostgreSQL username
+      POSTGRES_PASSWORD: password  # PostgreSQL password
+      POSTGRES_DB: jwk_db  # PostgreSQL database name
     ports:
-      - "5432:5432"
+      - "5432:5432"  # Expose PostgreSQL port
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data  # Persist PostgreSQL data
 
   app:
     build:
-      context: .  # Указываем корневую директорию проекта
-      dockerfile: ./Dockerfile  # Указываем путь к Dockerfile
+      context: .  # Build context
+      dockerfile: ./Dockerfile  # Path to Dockerfile
     environment:
-      DATABASE_URL: postgres://user:password@db:5432/jwk_db
-      RUN_MIGRATIONS_ON_START: 1
-      PRIVATE_KEY_EXPIRATION_SECONDS: 120 # 86400  # 1 день (в секундах)
-      KEY_EXPIRATION_SECONDS: 60 # 172800  # 2 дня (в секундах)
-    command: tail -f /dev/null
+      DATABASE_URL: postgres://user:password@db:5432/jwk_db  # Database connection URL
+      RUN_MIGRATIONS_ON_START: 1  # Run migrations on startup (1 = true, 0 = false)
+      PRIVATE_KEY_EXPIRATION_SECONDS: 86400  # time in seconds (default: 1 day)
+      KEY_EXPIRATION_SECONDS: 172800  # time in seconds (default: 2 days)
+    command: tail -f /dev/null  # Keep the container running
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Expose application port
     volumes:
-      - ../..:/app  # Синхронизируем код на хосте с кодом в контейнере
+      - ../..:/app  # Sync code between host and container
     depends_on:
-      - db
+      - db  # Depend on the PostgreSQL service
 
   swagger-ui:
-    image: swaggerapi/swagger-ui
+    image: swaggerapi/swagger-ui  # Swagger UI image
     ports:
-      - "8081:8080"
+      - "8081:8080"  # Expose Swagger UI port
     environment:
-      API_URL: http://localhost:8080/api-docs/openapi.json  # Указываем URL OpenAPI-спецификации
+      API_URL: http://localhost:8080/api-docs/openapi.json  # OpenAPI specification URL
     depends_on:
-      - app
+      - app  # Depend on the application service
 
 volumes:
-  postgres_data:
+  postgres_data:  # Volume for PostgreSQL data

@@ -1,13 +1,15 @@
-# Dev-образ для разработки
+# Dev image for development
 FROM rust:1.84 as dev
 
-# Устанавливаем зависимости для работы с PostgreSQL
+# Install dependencies for PostgreSQL
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем cargo-watch для hot reload
+# Install cargo-watch for hot reload
 RUN cargo install cargo-watch
 
-# Создаем рабочую директорию
+RUN cargo install diesel_cli --no-default-features --features postgres
+
+# Set the working directory
 WORKDIR /app

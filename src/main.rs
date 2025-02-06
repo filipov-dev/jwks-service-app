@@ -1,7 +1,4 @@
-//! Микросервис для работы с JWK (JSON Web Key).
-//!
-//! Этот микросервис предоставляет endpoint для получения JWK в формате JSON.
-//! Ключи хранятся в базе данных PostgreSQL, а для работы с базой данных используется Diesel.
+//! This module contains the main application logic for the JWK microservice.
 
 use actix_web::*;
 use actix_cors::Cors;
@@ -19,9 +16,10 @@ mod db;
 mod crypto;
 mod handlers;
 
-// Встроенные миграции
+// Embedded migrations
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
+/// OpenAPI documentation for the JWK microservice
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -39,29 +37,26 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 )]
 struct ApiDoc;
 
-/// Эндпоинт для предоставления OpenAPI-спецификации
+/// Endpoint to provide OpenAPI specification
 async fn openapi_spec() -> impl Responder {
     HttpResponse::Ok()
         .content_type("application/json")
         .body(ApiDoc::openapi().to_json().unwrap())
 }
 
-/// Точка входа в приложение.
-///
-/// Запускает веб-сервер на `0.0.0.0:8080`.
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
-    // Проверяем, нужно ли выполнять миграции
+    // Check if migrations need to be run
     if env::var("RUN_MIGRATIONS_ON_START").unwrap_or_default() == "1" {
         let connection = &mut db::establish_connection();
         println!("Running migrations...");
 
-        // Выполняем миграции
+        // Run migrations
         connection.run_pending_migrations(MIGRATIONS).expect("Failed to run migrations");
 
-        // Получаем список применённых миграций
+        // Get the list of applied migrations
         let applied_migrations = connection.applied_migrations().expect("Failed to get applied migrations");
         println!("Applied migrations:");
         for migration in applied_migrations {
@@ -71,22 +66,21 @@ async fn main() -> std::io::Result<()> {
         println!("Migrations completed.");
     }
 
+    // Start the web server
     HttpServer::new(|| {
         let cors = Cors::default()
-            .allow_any_origin()  // Разрешаем запросы с любого источника
-            .allowed_methods(vec!["GET", "POST", "DELETE"])  // Разрешаем GET и POST
-            .allow_any_header()  // Разрешаем любые заголовки
-            .max_age(3600);  // Устанавливаем время кэширования CORS
+            .allow_any_origin()  // Allow requests from any origin
+            .allowed_methods(vec!["GET", "POST", "DELETE"])  // Allow GET, POST, and DELETE
+            .allow_any_header()  // Allow any headers
+            .max_age(3600);  // Set CORS cache time
 
         App::new()
-            .wrap(cors) // Добавляем middleware CORS
+            .wrap(cors)  // Add CORS middleware
             .route("/.well-known/jwks.json", web::get().to(jwks_handler))
-
             .route("/jwks", web::post().to(add_jwk_handler))
-            .route("/jwks/{id}", web::get().to(get_jwk_by_id_handler))  // Эндпоинт для получения ключа по ID
-            .route("/jwks/{id}", web::delete().to(delete_jwk_handler))  // Эндпоинт для удаления ключа
-
-            .route("/api-docs/openapi.json", web::get().to(openapi_spec)) // Эндпоинт для OpenAPI-спецификации
+            .route("/jwks/{id}", web::get().to(get_jwk_by_id_handler))  // Endpoint to get a key by ID
+            .route("/jwks/{id}", web::delete().to(delete_jwk_handler))  // Endpoint to delete a key
+            .route("/api-docs/openapi.json", web::get().to(openapi_spec)) // Endpoint for OpenAPI specification
     })
         .bind("0.0.0.0:8080")?
         .run()
