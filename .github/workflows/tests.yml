@@ -37,16 +37,16 @@ jobs:
 
       - name: Prepare system
         env:
-          DATABASE_URL: postgres://user:password@db:5432/jwk_db
+          DATABASE_URL: postgres://user:password@postgres:5432/jwk_db
         run: |
           diesel migration run
 
       - name: Run tests
         env:
-          DATABASE_URL: postgres://user:password@db:5432/jwk_db
+          DATABASE_URL: postgres://user:password@postgres:5432/jwk_db
         run: cargo test
 
       - name: Run coverage
         env:
-          DATABASE_URL: postgres://user:password@db:5432/jwk_db
+          DATABASE_URL: postgres://user:password@postgres:5432/jwk_db
         run: cargo tarpaulin --ignore-tests # --out Lcov
