@@ -5,18 +5,16 @@ on:
     branches:
       - master
 
-env:
-  POSTGRES_USER: user
-  POSTGRES_PASSWORD: password
-  POSTGRES_DB: jwk_db
-  DATABASE_URL: postgres://user:password@db:5432/jwk_db
-
 jobs:
   test:
     runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:13
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: jwk_db
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
@@ -38,11 +36,17 @@ jobs:
           cargo install cargo-tarpaulin
 
       - name: Prepare system
+        env:
+          DATABASE_URL: postgres://user:password@db:5432/jwk_db
         run: |
           diesel migration run
 
       - name: Run tests
+        env:
+          DATABASE_URL: postgres://user:password@db:5432/jwk_db
         run: cargo test
 
       - name: Run coverage
+        env:
+          DATABASE_URL: postgres://user:password@db:5432/jwk_db
         run: cargo tarpaulin --ignore-tests # --out Lcov
