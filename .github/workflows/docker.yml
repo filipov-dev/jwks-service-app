@@ -39,8 +39,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           platforms:
-            - linux/amd64
-            - linux/arm64
+            - 'linux/amd64'
+            - 'linux/arm64'
           file: ./deployments/prod/Dockerfile
           context: .
           push: true
@@ -52,8 +52,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           platforms:
-            - linux/amd64
-            - linux/arm64
+            - 'linux/amd64'
+            - 'linux/arm64'
           file: ./deployments/prod/Dockerfile
           context: .
           push: true
