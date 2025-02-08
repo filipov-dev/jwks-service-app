@@ -1,5 +1,5 @@
 # Use the official Rust image as the build stage
-FROM rust:1.84 as builder
+FROM rust:1.84-alpine as builder
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
