@@ -29,3 +29,9 @@ jobs:
           body: ${{ github.event.head_commit.message }}
           draft: false
           prerelease: false
+
+      - name: Trigger another workflow
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: release-published
