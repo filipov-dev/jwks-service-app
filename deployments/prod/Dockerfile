@@ -1,34 +1,47 @@
-# Use the official Rust image as the build stage
+# Этап сборки
 FROM rust:1.84-alpine as builder
 
-# Set the working directory inside the container
-WORKDIR /usr/src/app
-
-# Install dependencies for PostgreSQL
+# Устанавливаем необходимые зависимости для сборки
 RUN apk add --no-cache musl-dev openssl-dev postgresql-dev
 
-# Copy the entire project into the container
+# Устанавливаем target для статической компиляции с использованием musl
+RUN rustup target add x86_64-unknown-linux-musl
+
+# Создаем рабочую директорию
+WORKDIR /app
+
+# Копируем файлы проекта
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+COPY migrations ./migrations
+
+# Собираем зависимости (кэшируем их)
+RUN mkdir -p ./src && echo "fn main() {}" > ./src/main.rs
+RUN cargo build --release --target x86_64-unknown-linux-musl
+RUN rm -rf ./src
+
+# Копируем исходный код и собираем проект
 COPY . .
+RUN cargo build --release --target x86_64-unknown-linux-musl
 
-# Install dependencies and build the project in release mode
-RUN cargo build --release
+# Финальный этап: используем последнюю версию Alpine Linux
+FROM alpine:3.18
 
-# Use a minimal Alpine image for the final production stage
-FROM alpine:latest
-
-# Install dependencies for Runtime
+# Устанавливаем runtime-зависимости
 RUN apk add --no-cache libgcc openssl postgresql-libs
 
-# Set the working directory inside the container
-WORKDIR /usr/src/app
+# Копируем собранное приложение из этапа сборки
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/jwks-service-app /usr/local/bin/jwks-service-app
 
-# Copy the compiled binary from the builder stage
-COPY --from=builder /usr/src/app/target/release/jwks-service-app ./jwks-service-app
+# Копируем миграции
+COPY --from=builder /app/migrations /app/migrations
 
-ENV RUN_MIGRATIONS_ON_START 1
+# Указываем рабочую директорию
+WORKDIR /app
 
-# Expose the port the application will run on
-EXPOSE 8080
+# Указываем переменные окружения для Diesel
+ENV DATABASE_URL=postgres://user:password@db:5432/jwks_service
+ENV RUST_LOG=info
 
-# Run the application
-CMD ["/usr/src/app/target/release/jwks-service-app"]
+# Указываем точку входа
+ENTRYPOINT ["/usr/local/bin/jwks-service-app"]
