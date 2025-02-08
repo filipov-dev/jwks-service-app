@@ -6,7 +6,6 @@ A microservice for managing JSON Web Keys (JWKs). This service provides an API f
 
 - Generate RSA, EC, and Ed25519 keys.
 - Store keys in PostgreSQL.
-- Support for hot reload during development.
 - API for retrieving public keys in JWK format.
 - Automatic OpenAPI documentation generation.
 - Interactive documentation via Swagger UI.
@@ -108,9 +107,18 @@ If you prefer to develop locally, follow these steps:
    cargo watch -x run
    ```
 
+## Running Tests
+To run the tests and check coverage:
+
+```bash
+cargo test
+cargo tarpaulin --ignore-tests
+```
+
 ## Project Structure
 
 - `src/` — Application source code.
+- `tests/` — Integration tests.
 - `deployments/dev/` — Configuration for dev mode (Dockerfile, docker-compose.yml).
 - `.env` — Environment variables file.
 

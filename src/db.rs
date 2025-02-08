@@ -1,7 +1,7 @@
 //! This module provides functionality for establishing a connection to the database.
 
-use diesel::prelude::*;
 use diesel::pg::PgConnection;
+use diesel::prelude::*;
 use dotenv::dotenv;
 use std::env;
 
@@ -25,5 +25,5 @@ pub fn establish_connection() -> PgConnection {
 
     // Establish a connection to the database.
     PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
