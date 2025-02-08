@@ -1,9 +1,10 @@
 //! This module provides cryptographic functionality for generating keys.
 
-use openssl::rsa::Rsa;
+use base64::engine::general_purpose::STANDARD as base64_engine;
+use base64::Engine;
 use openssl::ec::{EcGroup, EcKey};
 use openssl::nid::Nid;
-use base64;
+use openssl::rsa::Rsa;
 
 /// Generates an RSA key pair and returns them in Base64 format.
 ///
@@ -16,11 +17,15 @@ use base64;
 /// A tuple containing the public key and private key in Base64 format.
 pub fn generate_rsa_keypair(key_size: u32) -> (String, String) {
     let rsa = Rsa::generate(key_size).expect("Failed to generate RSA key");
-    let private_key = rsa.private_key_to_der().expect("Failed to serialize private key");
-    let public_key = rsa.public_key_to_der().expect("Failed to serialize public key");
+    let private_key = rsa
+        .private_key_to_der()
+        .expect("Failed to serialize private key");
+    let public_key = rsa
+        .public_key_to_der()
+        .expect("Failed to serialize public key");
 
-    let private_key_b64 = base64::encode(&private_key);
-    let public_key_b64 = base64::encode(&public_key);
+    let private_key_b64 = base64_engine.encode(&private_key);
+    let public_key_b64 = base64_engine.encode(&public_key);
 
     (public_key_b64, private_key_b64)
 }
@@ -37,11 +42,15 @@ pub fn generate_rsa_keypair(key_size: u32) -> (String, String) {
 pub fn generate_ec_keypair(curve: Nid) -> (String, String) {
     let group = EcGroup::from_curve_name(curve).expect("Failed to create EC group");
     let ec_key = EcKey::generate(&group).expect("Failed to generate EC key");
-    let private_key = ec_key.private_key_to_der().expect("Failed to serialize private key");
-    let public_key = ec_key.public_key_to_der().expect("Failed to serialize public key");
+    let private_key = ec_key
+        .private_key_to_der()
+        .expect("Failed to serialize private key");
+    let public_key = ec_key
+        .public_key_to_der()
+        .expect("Failed to serialize public key");
 
-    let private_key_b64 = base64::encode(&private_key);
-    let public_key_b64 = base64::encode(&public_key);
+    let private_key_b64 = base64_engine.encode(&private_key);
+    let public_key_b64 = base64_engine.encode(&public_key);
 
     (public_key_b64, private_key_b64)
 }
@@ -53,11 +62,15 @@ pub fn generate_ec_keypair(curve: Nid) -> (String, String) {
 /// A tuple containing the public key and private key in Base64 format.
 pub fn generate_ed25519_keypair() -> (String, String) {
     let key = openssl::pkey::PKey::generate_ed25519().expect("Failed to generate Ed25519 key");
-    let private_key = key.private_key_to_der().expect("Failed to serialize private key");
-    let public_key = key.public_key_to_der().expect("Failed to serialize public key");
+    let private_key = key
+        .private_key_to_der()
+        .expect("Failed to serialize private key");
+    let public_key = key
+        .public_key_to_der()
+        .expect("Failed to serialize public key");
 
-    let private_key_b64 = base64::encode(&private_key);
-    let public_key_b64 = base64::encode(&public_key);
+    let private_key_b64 = base64_engine.encode(&private_key);
+    let public_key_b64 = base64_engine.encode(&public_key);
 
     (public_key_b64, private_key_b64)
 }

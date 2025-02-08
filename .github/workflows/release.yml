@@ -1,0 +1,31 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Cargo.toml
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          echo "VERSION=$(grep -m1 'version' Cargo.toml | cut -d '"' -f 2)" >> $GITHUB_ENV
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.VERSION }}
+          release_name: v${{ env.VERSION }}
+          body: ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false

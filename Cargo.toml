@@ -16,3 +16,9 @@ base64 = "0.22"
 utoipa = { version = "3.0", features = ["actix_extras"] }
 actix-cors = "0.7"
 chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+actix-rt = "2.0"  # Для асинхронного тестирования
+reqwest = "0.11"  # Для HTTP-запросов в тестах
+serde_json = "1.0"  # Для работы с JSON в тестах
+uuid = { version = "1.0", features = ["v4"] }  # Для генерации UUID в тестах

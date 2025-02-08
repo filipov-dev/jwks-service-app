@@ -1,16 +1,16 @@
 //! This module contains the request handlers for the JWK microservice.
 
-use dotenv::dotenv;
-use std::env;
+use crate::crypto::{generate_ec_keypair, generate_ed25519_keypair, generate_rsa_keypair};
+use crate::db::establish_connection;
+use crate::models::{AlgorithmInput, Jwk, JwkData, Jwks};
+use crate::schema::jwks::dsl::*;
 use actix_web::{web, HttpResponse, Responder};
 use chrono::Utc;
 use diesel::prelude::*;
+use dotenv::dotenv;
 use openssl::nid::Nid;
+use std::env;
 use uuid::Uuid;
-use crate::crypto::{generate_ec_keypair, generate_ed25519_keypair, generate_rsa_keypair};
-use crate::db::establish_connection;
-use crate::models::{AlgorithmInput, Jwk, Jwks};
-use crate::schema::jwks::dsl::*;
 
 /// Handles the request to retrieve a list of active JWKs.
 ///
@@ -31,26 +31,23 @@ pub async fn jwks_handler() -> impl Responder {
     let results = jwks
         .filter(deleted_at.is_null())
         .filter(key_expires_at.gt(Utc::now().naive_utc()))
-        .load::<Jwk>(connection)
+        .load::<JwkData>(connection)
         .expect("Error loading jwks");
 
-    let public_jwks = results.into_iter().map(|jwk| Jwk {
-        id: jwk.id,
-        kty: jwk.kty,
-        alg: jwk.alg,
-        kid: jwk.kid,
-        n: jwk.n,
-        e: jwk.e,
-        d: "".to_string(),
-        created_at: jwk.created_at,
-        deleted_at: None,
-        private_key_expires_at: None,
-        key_expires_at: None,
-    }).collect::<Vec<_>>();
+    let public_jwks = results
+        .into_iter()
+        .map(|jwk| Jwk {
+            id: jwk.id,
+            kty: jwk.kty,
+            alg: jwk.alg,
+            kid: jwk.kid,
+            n: jwk.n,
+            e: jwk.e,
+            d: "".to_string(),
+        })
+        .collect::<Vec<_>>();
 
-    let jwks_list = Jwks {
-        keys: public_jwks,
-    };
+    let jwks_list = Jwks { keys: public_jwks };
 
     HttpResponse::Ok().json(jwks_list)
 }
@@ -79,12 +76,12 @@ pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder
 
     // Get expiration times from environment variables
     let private_key_expiration_seconds: i64 = env::var("PRIVATE_KEY_EXPIRATION_SECONDS")
-        .unwrap_or_else(|_| "86400".to_string())  // По умолчанию 1 день
+        .unwrap_or_else(|_| "86400".to_string()) // По умолчанию 1 день
         .parse()
         .expect("PRIVATE_KEY_EXPIRATION_SECONDS must be a number");
 
     let key_expiration_seconds: i64 = env::var("KEY_EXPIRATION_SECONDS")
-        .unwrap_or_else(|_| "172800".to_string())  // По умолчанию 2 дня
+        .unwrap_or_else(|_| "172800".to_string()) // По умолчанию 2 дня
         .parse()
         .expect("KEY_EXPIRATION_SECONDS must be a number");
 
@@ -102,7 +99,7 @@ pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder
     let now = Utc::now().naive_utc();
 
     // Create a new JWK
-    let jwk = Jwk {
+    let jwk = JwkData {
         id: Uuid::new_v4(),
         kty: match input.alg.as_str() {
             "RS256" | "RS384" | "RS512" => "RSA".to_string(),
@@ -112,16 +109,22 @@ pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder
         },
         alg: input.alg.clone(),
         kid: Uuid::new_v4().to_string(), // Unique key ID
-        n: public_key, // Key modulus (public key)
+        n: public_key,                   // Key modulus (public key)
         e: match input.alg.as_str() {
             "RS256" | "RS384" | "RS512" => "AQAB".to_string(), // Public exponent for RSA
-            _ => "".to_string(), // Not used for EC and Ed25519
+            _ => "".to_string(),                               // Not used for EC and Ed25519
         },
         d: private_key, // Private key
         created_at: now,
         deleted_at: None,
-        private_key_expires_at: Some(now + chrono::Duration::seconds(private_key_expiration_seconds)),
-        key_expires_at: Some(now + chrono::Duration::seconds(private_key_expiration_seconds + key_expiration_seconds)),
+        private_key_expires_at: Some(
+            now + chrono::Duration::seconds(private_key_expiration_seconds),
+        ),
+        key_expires_at: Some(
+            now + chrono::Duration::seconds(
+                private_key_expiration_seconds + key_expiration_seconds,
+            ),
+        ),
     };
 
     // Save the JWK to the database
@@ -162,9 +165,9 @@ pub async fn get_jwk_by_id_handler(key_id: web::Path<Uuid>) -> impl Responder {
     // Find the key by ID
     let result = jwks
         .filter(id.eq(key_id.into_inner()))
-        .filter(deleted_at.is_null())  // Exclude deleted keys
-        .filter(key_expires_at.gt(Utc::now().naive_utc()))  // Exclude expired keys
-        .first::<Jwk>(connection);
+        .filter(deleted_at.is_null()) // Exclude deleted keys
+        .filter(key_expires_at.gt(Utc::now().naive_utc())) // Exclude expired keys
+        .first::<JwkData>(connection);
 
     match result {
         Ok(jwk_result) => {

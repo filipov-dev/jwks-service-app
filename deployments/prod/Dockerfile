@@ -1,28 +1,26 @@
-# Dev image for development
-FROM rust:1.84 as dev
+# Use the official Rust image as the build stage
+FROM rust:1.84 as builder
 
-# Install dependencies for PostgreSQL
-RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Set the working directory inside the container
+WORKDIR /usr/src/app
 
-# Install cargo-watch for hot reload
-RUN cargo install cargo-watch
-
-# Set the working directory
-WORKDIR /app
-
-# Copy Cargo.toml and Cargo.lock
-COPY Cargo.toml Cargo.lock ./
-
-# Create an empty project for caching dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# Build dependencies
-RUN cargo build --release
-
-# Copy the source code
+# Copy the entire project into the container
 COPY . .
 
-# Command to run the application with hot reload
-CMD ["cargo", "watch", "-x", "run"]
+# Install dependencies and build the project in release mode
+RUN cargo build --release
+
+# Use a minimal Alpine image for the final production stage
+FROM alpine:latest
+
+# Set the working directory inside the container
+WORKDIR /usr/src/app
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /usr/src/app/target/release/jwks-service-app ./jwks-service-app
+
+# Expose the port the application will run on
+EXPOSE 8080
+
+# Run the application
+CMD ["./jwks-service-app"]
