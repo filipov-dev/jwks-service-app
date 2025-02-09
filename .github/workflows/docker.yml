@@ -47,8 +47,16 @@ jobs:
           context: .
           push: true
           tags: |
-            filipov/jwks-service:${{ env.VERSION }}
-            filipov/jwks-service:latest
+            filipov/jwks-service-app:${{ env.VERSION }}
+            filipov/jwks-service-app:latest
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+          repository: filipov/jwks-service-app
+          readme-filepath: ./deployments/prod/README.md
 
       - name: Build and push to GitHub Container Registry
         uses: docker/build-push-action@v3
@@ -58,5 +66,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/filipov-dev/jwks-service:${{ env.VERSION }}
-            ghcr.io/filipov-dev/jwks-service:latest
+            ghcr.io/filipov-dev/jwks-service-app:${{ env.VERSION }}
+            ghcr.io/filipov-dev/jwks-service-app:latest
