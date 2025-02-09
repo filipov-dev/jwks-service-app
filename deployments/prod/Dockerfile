@@ -1,47 +1,36 @@
-# Этап сборки
-FROM rust:1.84-alpine as builder
+# Dev image for development
+FROM rust:1.84-slim-bullseye as builder
 
-# Устанавливаем необходимые зависимости для сборки
-RUN apk add --no-cache musl-dev openssl-dev postgresql-dev
+# Install dependencies for PostgreSQL
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем target для статической компиляции с использованием musl
-RUN rustup target add x86_64-unknown-linux-musl
-
-# Создаем рабочую директорию
+# Create a working directory
 WORKDIR /app
 
-# Копируем файлы проекта
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-COPY migrations ./migrations
-
-# Собираем зависимости (кэшируем их)
-RUN mkdir -p ./src && echo "fn main() {}" > ./src/main.rs
-RUN cargo build --release --target x86_64-unknown-linux-musl
-RUN rm -rf ./src
-
-# Копируем исходный код и собираем проект
+# Copy the source code and build the project
 COPY . .
-RUN cargo build --release --target x86_64-unknown-linux-musl
 
-# Финальный этап: используем последнюю версию Alpine Linux
-FROM alpine:3.18
+# Build the project in release mode
+RUN cargo build --release
 
-# Устанавливаем runtime-зависимости
-RUN apk add --no-cache libgcc openssl postgresql-libs
+# Final stage: use the latest version of Debian Slim
+FROM debian:bullseye-slim
 
-# Копируем собранное приложение из этапа сборки
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/jwks-service-app /usr/local/bin/jwks-service-app
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libssl1.1 \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Копируем миграции
-COPY --from=builder /app/migrations /app/migrations
+# Copy the built application from the builder stage
+COPY --from=builder /app/target/release/jwks-service-app /usr/local/bin/jwks-service-app
 
-# Указываем рабочую директорию
+# Set the working directory
 WORKDIR /app
 
-# Указываем переменные окружения для Diesel
-ENV DATABASE_URL=postgres://user:password@db:5432/jwks_service
-ENV RUST_LOG=info
-
-# Указываем точку входа
+# Set the entry point
 ENTRYPOINT ["/usr/local/bin/jwks-service-app"]
