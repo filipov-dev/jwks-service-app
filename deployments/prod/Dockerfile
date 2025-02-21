@@ -22,10 +22,13 @@ RUN cargo build --release
 FROM debian:bullseye-slim as runner
 
 # Install runtime dependencies
-RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
-    libssl1.1 \
-    libpq5 \
-    && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /usr/sbin && \
+    ln -sf /usr/bin/dpkg /usr/sbin/dpkg-preconfigure && \
+    apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends \
+        libssl1.1 \
+        libpq5 \
+        && rm -rf /var/lib/apt/lists/*
 
 # Copy the built application from the builder stage
 COPY --from=builder /app/target/release/jwks-service-app /usr/local/bin/jwks-service-app
