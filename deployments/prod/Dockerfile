@@ -1,5 +1,5 @@
 # Dev image for development
-FROM rust:1.84.0-slim-bullseye as builder
+FROM rust:1.84.1-slim-bullseye as builder
 
 # Install dependencies for PostgreSQL
 RUN apt-get update --fix-missing && \
