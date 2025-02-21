@@ -22,7 +22,7 @@ RUN cargo build --release
 FROM debian:bullseye-slim as runner
 
 # Install runtime dependencies
-RUN apt-get update --fix-missing && apt-get install -y \
+RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     libssl1.1 \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
