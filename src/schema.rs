@@ -12,12 +12,23 @@ diesel::table! {
         alg -> Varchar,
         /// Key ID.
         kid -> Varchar,
+        /// Contain the subtype of the key (from the "JSON Web Elliptic Curve" registry).
+        crv -> Nullable<Text>,
+        /// Contain the public key encoded using the base64url [RFC4648] encoding.
+        x -> Nullable<Text>,
+        y -> Nullable<Text>,
         /// Key modulus in Base64 format.
-        n -> Text,
+        n -> Nullable<Text>,
         /// Public exponent in Base64 format.
-        e -> Text,
+        e -> Nullable<Text>,
+        /// The x.509 certificate chain.
+        /// The first entry in the array is the certificate to use for token verification;
+        /// the other certificates can be used to verify this first certificate.
+        x5c -> Nullable<Array<Text>>,
+        /// The thumbprint of the x.509 cert (SHA-1 thumbprint).
+        x5t -> Nullable<Text>,
         /// Private key in Base64 format.
-        d -> Text,
+        private_key -> Text,
         /// Key creation date.
         created_at -> Timestamp,
         /// Key deletion date. If `NULL`, the key is active.

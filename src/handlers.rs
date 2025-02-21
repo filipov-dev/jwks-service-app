@@ -1,6 +1,6 @@
 //! This module contains the request handlers for the JWK microservice.
 
-use crate::crypto::{generate_ec_keypair, generate_ed25519_keypair, generate_rsa_keypair};
+use crate::crypto::{generate_ec_jwk_data, generate_eddsa_jwk_data, generate_rsa_jwk_data};
 use crate::db::establish_connection;
 use crate::models::{AlgorithmInput, Jwk, JwkData, Jwks};
 use crate::schema::jwks::dsl::*;
@@ -8,7 +8,6 @@ use actix_web::{web, HttpResponse, Responder};
 use chrono::Utc;
 use diesel::prelude::*;
 use dotenv::dotenv;
-use openssl::nid::Nid;
 use std::env;
 use uuid::Uuid;
 
@@ -37,13 +36,17 @@ pub async fn jwks_handler() -> impl Responder {
     let public_jwks = results
         .into_iter()
         .map(|jwk| Jwk {
-            id: jwk.id,
             kty: jwk.kty,
+            use_: "sig".to_string(),
             alg: jwk.alg,
             kid: jwk.kid,
+            crv: jwk.crv,
+            x: jwk.x,
+            y: jwk.y,
             n: jwk.n,
             e: jwk.e,
-            d: "".to_string(),
+            x5c: jwk.x5c,
+            x5t: jwk.x5t,
         })
         .collect::<Vec<_>>();
 
@@ -86,12 +89,10 @@ pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder
         .expect("KEY_EXPIRATION_SECONDS must be a number");
 
     // Generate keys based on the algorithm
-    let (public_key, private_key) = match algorithm.as_str() {
-        "RS256" | "RS384" | "RS512" => generate_rsa_keypair(2048),
-        "ES256" => generate_ec_keypair(Nid::X9_62_PRIME256V1),
-        "ES384" => generate_ec_keypair(Nid::SECP384R1),
-        "ES512" => generate_ec_keypair(Nid::SECP521R1),
-        "Ed25519" => generate_ed25519_keypair(),
+    let jwk_key = match algorithm.as_str() {
+        "RS256" | "RS384" | "RS512" => generate_rsa_jwk_data(2048, algorithm.as_str()).unwrap(),
+        "ES256" | "ES384" | "ES512" => generate_ec_jwk_data(algorithm.as_str()).unwrap(),
+        "Ed25519" | "Ed448" => generate_eddsa_jwk_data(algorithm.as_str()).unwrap(),
         _ => return HttpResponse::BadRequest().body("Unsupported algorithm"),
     };
 
@@ -101,20 +102,17 @@ pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder
     // Create a new JWK
     let jwk = JwkData {
         id: Uuid::new_v4(),
-        kty: match input.alg.as_str() {
-            "RS256" | "RS384" | "RS512" => "RSA".to_string(),
-            "ES256" | "ES384" | "ES512" => "EC".to_string(),
-            "Ed25519" => "OKP".to_string(), // Octet Key Pair (Ed25519)
-            _ => return HttpResponse::BadRequest().body("Unsupported algorithm"),
-        },
-        alg: input.alg.clone(),
-        kid: Uuid::new_v4().to_string(), // Unique key ID
-        n: public_key,                   // Key modulus (public key)
-        e: match input.alg.as_str() {
-            "RS256" | "RS384" | "RS512" => "AQAB".to_string(), // Public exponent for RSA
-            _ => "".to_string(),                               // Not used for EC and Ed25519
-        },
-        d: private_key, // Private key
+        kty: jwk_key.kty,
+        alg: jwk_key.alg,
+        crv: jwk_key.crv,
+        kid: jwk_key.kid,
+        x: jwk_key.x,
+        y: jwk_key.y,
+        n: jwk_key.n,
+        e: jwk_key.e,
+        x5c: jwk_key.x5c,
+        x5t: jwk_key.x5t,
+        private_key: jwk_key.private_key,
         created_at: now,
         deleted_at: None,
         private_key_expires_at: Some(
@@ -154,7 +152,7 @@ pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder
         ("id" = String, Path, description = "Unique key identifier")
     ),
     responses(
-        (status = 200, description = "Key found", body = Jwk),
+        (status = 200, description = "Key found", body = JwkData),
         (status = 404, description = "Key not found "),
         (status = 410, description = "Private key expired")
     )
