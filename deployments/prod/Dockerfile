@@ -20,6 +20,11 @@ RUN cargo build --release
 # Final stage: use the latest version of Debian Slim
 FROM debian:bullseye-slim as runner
 
+RUN rm /var/lib/dpkg/info/libc-bin.*
+RUN apt-get clean
+RUN apt-get update
+RUN apt-get install libc-bin
+
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     libssl1.1 \
