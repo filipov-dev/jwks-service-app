@@ -1156,7 +1156,7 @@ dependencies = [
 
 [[package]]
 name = "jwks-service-app"
-version = "1.0.1"
+version = "1.0.3"
 dependencies = [
  "actix-cors",
  "actix-rt",

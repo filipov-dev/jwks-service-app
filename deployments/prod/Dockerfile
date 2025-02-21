@@ -2,11 +2,12 @@
 FROM rust:1.84-slim-bullseye as builder
 
 # Install dependencies for PostgreSQL
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update --fix-missing && \
+    apt-get install -y \
+      pkg-config \
+      libssl-dev \
+      libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create a working directory
 WORKDIR /app
@@ -19,11 +20,6 @@ RUN cargo build --release
 
 # Final stage: use the latest version of Debian Slim
 FROM debian:bullseye-slim as runner
-
-RUN rm /var/lib/dpkg/info/libc-bin.*
-RUN apt-get clean
-RUN apt-get update
-RUN apt-get install libc-bin
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
