@@ -18,7 +18,7 @@ COPY . .
 RUN cargo build --release
 
 # Final stage: use the latest version of Debian Slim
-FROM debian:bullseye-slim
+FROM debian:bullseye-slim as runner
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
