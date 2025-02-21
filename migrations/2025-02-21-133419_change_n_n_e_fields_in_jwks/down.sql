@@ -1,0 +1,3 @@
+ALTER TABLE jwks
+    ALTER n SET NOT NULL,
+    ALTER e SET NOT NULL;

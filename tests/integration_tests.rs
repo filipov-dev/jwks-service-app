@@ -22,7 +22,7 @@ async fn test_create_and_get_jwk() {
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     // Retrieve the key by ID
-    let jwk: Jwk = test::read_body_json(resp).await;
+    let jwk: JwkData = test::read_body_json(resp).await;
     let req = test::TestRequest::get()
         .uri(&format!("/jwks/{}", jwk.id))
         .to_request();
@@ -44,7 +44,7 @@ async fn test_delete_jwk() {
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     // Delete the key
-    let jwk: Jwk = test::read_body_json(resp).await;
+    let jwk: JwkData = test::read_body_json(resp).await;
     let req = test::TestRequest::delete()
         .uri(&format!("/jwks/{}", jwk.id))
         .to_request();
@@ -73,7 +73,7 @@ async fn test_expired_jwk() {
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     // Retrieve the key by ID
-    let jwk: Jwk = test::read_body_json(resp).await;
+    let jwk: JwkData = test::read_body_json(resp).await;
 
     // Set the private key expiration time to the past
     let connection = &mut db::establish_connection();
