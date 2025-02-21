@@ -1,5 +1,5 @@
 # Dev image for development
-FROM rust:1.84-slim-bullseye as builder
+FROM rust:1.84.0-slim-bullseye as builder
 
 # Install dependencies for PostgreSQL
 RUN apt-get update --fix-missing && \
@@ -22,9 +22,7 @@ RUN cargo build --release
 FROM debian:bullseye-slim as runner
 
 # Install runtime dependencies
-RUN mkdir -p /usr/sbin && \
-    ln -sf /usr/bin/dpkg /usr/sbin/dpkg-preconfigure && \
-    apt-get update --fix-missing && \
+RUN apt-get update --fix-missing && \
     apt-get install -y --no-install-recommends \
         libssl1.1 \
         libpq5 \
