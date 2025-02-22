@@ -36,6 +36,12 @@ pub async fn main() -> std::io::Result<()> {
         println!("Migrations completed.");
     }
 
+    let host = env::var("HOST")
+        .unwrap_or("127.0.0.1".into());
+    let port = env::var("PORT")
+        .unwrap_or("8080".into())
+        .parse::<u16>().unwrap();
+
     // Start the web server
     HttpServer::new(|| {
         let cors = Cors::default()
@@ -46,7 +52,7 @@ pub async fn main() -> std::io::Result<()> {
 
         App::new().wrap(cors).configure(app_config)
     })
-    .bind("0.0.0.0:8080")?
+    .bind((host, port))?
     .run()
     .await
 }
