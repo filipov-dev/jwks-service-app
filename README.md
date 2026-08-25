@@ -35,7 +35,28 @@ Create a `.env` file in the project root and add the following variables:
 DATABASE_URL=postgres://user:password@db:5432/jwk_db
 PRIVATE_KEY_EXPIRATION_SECONDS=86400  # 1 day (in seconds)
 KEY_EXPIRATION_SECONDS=172800  # 2 days (in seconds)
+HOST=127.0.0.1  # Address the service binds to
+PORT=8080  # Port the service listens on
 ```
+
+#### Binding Address
+
+The service binds to `127.0.0.1:8080` by default, so a fresh install is not exposed to the
+network. Inside a container that default makes the service unreachable from outside, so every
+deployment has to set `HOST` explicitly:
+
+```bash
+docker run -d \
+  --name jwks-service-app \
+  -e DATABASE_URL=postgres://user:password@db:5432/jwk_db \
+  -e HOST=0.0.0.0 \
+  -p 8080:8080 \
+  filipov/jwks-service-app:latest
+```
+
+The dev Compose setup in `deployments/dev/docker-compose.yml` already sets `HOST: 0.0.0.0`.
+`PORT` must be a number between 1 and 65535; any other value stops the service at startup with
+an explicit error message.
 
 ### 3. Run the Project in Dev Mode
 

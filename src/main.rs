@@ -36,11 +36,25 @@ pub async fn main() -> std::io::Result<()> {
         println!("Migrations completed.");
     }
 
-    let host = env::var("HOST")
-        .unwrap_or("127.0.0.1".into());
-    let port = env::var("PORT")
-        .unwrap_or("8080".into())
-        .parse::<u16>().unwrap();
+    // Bind address. Defaults to localhost, so every deployment artifact
+    // (container, systemd unit, etc.) has to opt in to a public binding
+    // by setting HOST explicitly, e.g. HOST=0.0.0.0.
+    let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".into());
+
+    // Port to listen on. An unreadable value is a configuration error,
+    // so report it instead of panicking with a bare ParseIntError.
+    let port = match env::var("PORT") {
+        Ok(value) => value.parse::<u16>().map_err(|error| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!(
+                    "Invalid PORT value '{}': {}. Expected a number between 1 and 65535.",
+                    value, error
+                ),
+            )
+        })?,
+        Err(_) => 8080,
+    };
 
     // Start the web server
     HttpServer::new(|| {

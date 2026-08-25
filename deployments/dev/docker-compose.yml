@@ -21,6 +21,8 @@ services:
       RUN_MIGRATIONS_ON_START: 1  # Run migrations on startup (1 = true, 0 = false)
       PRIVATE_KEY_EXPIRATION_SECONDS: 86400  # time in seconds (default: 1 day)
       KEY_EXPIRATION_SECONDS: 172800  # time in seconds (default: 2 days)
+      HOST: 0.0.0.0  # Bind to all interfaces so the service is reachable from the host
+      PORT: 8080  # Port the service listens on
     command: tail -f /dev/null  # Keep the container running
     ports:
       - "8080:8080"  # Expose application port
