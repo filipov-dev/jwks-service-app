@@ -8,65 +8,149 @@ on:
   release:
     types: [published]
 
+# Each platform is built natively (no QEMU): amd64 on a regular runner, arm64 on
+# a GitHub ARM runner. Under QEMU emulation cc/collect2 segfaulted while linking
+# aarch64 build scripts, which is what broke the 2.0.0 image build. Same fix as
+# in jwt-service-app (JWT-5).
+env:
+  DOCKERHUB_IMAGE: filipov/jwks-service-app
+  GHCR_IMAGE: ghcr.io/filipov-dev/jwks-service-app
+
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  # Step 1: build the image for each platform on its native runner and push it
+  # to both registries by digest (untagged).
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Prepare platform pair
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v7
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v4.5.2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v4.5.2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
         with:
-          image: tonistiigi/binfmt:qemu-v7.0.0-28@sha256:66e11bea77a5ea9d6f0fe79b57cd2b189b5d15b93a2bdb925be22949232e4e55
+          platforms: ${{ matrix.platform }}
+          file: ./deployments/prod/Dockerfile
+          context: .
+          # No attestations: otherwise each image is wrapped into a manifest
+          # list whose digest differs between registries, and imagetools cannot
+          # find it by a shared digest when assembling the multi-arch manifest.
+          provenance: false
+          sbom: false
+          # Layer cache between CI runs via the GitHub Actions cache. The
+          # dependency layer (cargo chef cook) is reused until Cargo.toml or
+          # Cargo.lock changes. The scope is per-platform so amd64 and arm64 do
+          # not overwrite each other; mode=max also caches intermediate layers.
+          cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,scope=${{ env.PLATFORM_PAIR }},mode=max
+          outputs: |
+            type=image,name=${{ env.DOCKERHUB_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+            type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Step 2: assemble a multi-arch manifest from the digest-pushed images and tag
+  # it (version from Cargo.toml + latest) in both registries.
+  merge:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4.5.2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4.5.2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get version from Cargo.toml
         id: version
         run: |
-          echo "VERSION=$(grep -m1 'version' Cargo.toml | cut -d '"' -f 2)" >> $GITHUB_ENV
+          echo "VERSION=$(grep -m1 'version' Cargo.toml | cut -d '"' -f 2)" >> "$GITHUB_ENV"
 
-      - name: Build and push to Docker Hub
-        uses: docker/build-push-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64
-          file: ./deployments/prod/Dockerfile
-          context: .
-          push: true
-          tags: |
-            filipov/jwks-service-app:${{ env.VERSION }}
-            filipov/jwks-service-app:latest
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          for image in "$DOCKERHUB_IMAGE" "$GHCR_IMAGE"; do
+            docker buildx imagetools create \
+              -t "${image}:${VERSION}" \
+              -t "${image}:latest" \
+              $(printf "${image}@sha256:%s " *)
+          done
+
+      - name: Inspect
+        run: |
+          docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${VERSION}"
+          docker buildx imagetools inspect "${GHCR_IMAGE}:${VERSION}"
 
       - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v3
+        uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
           repository: filipov/jwks-service-app
           readme-filepath: ./deployments/prod/README.md
-
-      - name: Build and push to GitHub Container Registry
-        uses: docker/build-push-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64
-          file: ./deployments/prod/Dockerfile
-          context: .
-          push: true
-          tags: |
-            ghcr.io/filipov-dev/jwks-service-app:${{ env.VERSION }}
-            ghcr.io/filipov-dev/jwks-service-app:latest
