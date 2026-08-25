@@ -23,6 +23,8 @@ The following environment variables are required to configure the application:
 | `RUN_MIGRATIONS_ON_START`         | Run database migrations on application start (`1` = true, `0` = false)      | `1`                     |
 | `PRIVATE_KEY_EXPIRATION_SECONDS`  | Expiration time for private keys in seconds                                | `86400` (1 day)         |
 | `KEY_EXPIRATION_SECONDS`          | Expiration time for JWKs in seconds                                        | `172800` (2 days)       |
+| `HOST`                            | Address the service binds to. Set to `0.0.0.0` to accept traffic from outside the container | `127.0.0.1`             |
+| `PORT`                            | Port the service listens on (1-65535)                                      | `8080`                  |
 
 ---
 
@@ -42,8 +44,13 @@ The following environment variables are required to configure the application:
      -e RUN_MIGRATIONS_ON_START=1 \
      -e PRIVATE_KEY_EXPIRATION_SECONDS=86400 \
      -e KEY_EXPIRATION_SECONDS=172800 \
+     -e HOST=0.0.0.0 \
+     -p 8080:8080 \
      filipov/jwks-service-app:latest
    ```
+
+   `HOST=0.0.0.0` is required: the service binds to `127.0.0.1` by default, which inside a
+   container means nothing outside can reach it.
 
 3. **Verify the Application**:
    Check the logs to ensure the application started successfully:
