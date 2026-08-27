@@ -7,28 +7,50 @@ on:
     paths:
       - Cargo.toml
 
+# An explicit block zeroes out everything not listed, so both rights are here:
+# contents to create the tag and the release, actions to dispatch docker.yml
+# through workflow_dispatch (without it the curl step below gets a 403).
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      # fetch-depth: 0 — the whole history and all tags are needed: the release
+      # notes are built from the commits since the previous tag, and a shallow
+      # clone has neither.
+      # persist-credentials: false — the token in `.git/config` is not needed
+      # below: no step in this workflow talks to git over the network.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Get version from Cargo.toml
-        id: version
         run: |
-          echo "VERSION=$(grep -m1 'version' Cargo.toml | cut -d '"' -f 2)" >> $GITHUB_ENV
+          echo "VERSION=$(grep -m1 '^version' Cargo.toml | cut -d '"' -f 2)" >> "$GITHUB_ENV"
 
-      - name: Create Release
-        uses: actions/create-release@v1
+      - name: Build release notes
+        run: |
+          # The same script that builds CHANGELOG.md — the sections and the
+          # wording in the release body and in the file match by construction.
+          scripts/changelog.sh > notes.md
+          cat notes.md
+
+      # gh instead of actions/create-release@v1: that action was archived back
+      # in 2021 and takes the release body as a string only, while ours is
+      # multi-line markdown. gh ships on the runner and creates the tag itself.
+      - name: Create release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ env.VERSION }}
-          release_name: v${{ env.VERSION }}
-          body: ${{ github.event.head_commit.message }}
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes-file notes.md \
+            --target "${GITHUB_SHA}"
 
       - name: Trigger another workflow
         run: |
