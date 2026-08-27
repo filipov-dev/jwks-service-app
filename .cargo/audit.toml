@@ -1,0 +1,13 @@
+# cargo-audit configuration.
+#
+# cargo-audit reads `.cargo/audit.toml` relative to the working directory; a
+# file at the repository root is silently ignored, which is why the previous
+# `audit.toml` never had any effect.
+
+[advisories]
+# RUSTSEC-2026-0258 — unbounded empty DATA frames in h2. Fixed in h2 0.4.16,
+# with no backport to the 0.3 branch. h2 0.3 reaches us only through
+# actix-http -> actix-web 4, so nothing in this repository can move it: the
+# advisory goes away when actix-web releases on h2 0.4.16+ and not before.
+# Revisit: 2026-11-27.
+ignore = ["RUSTSEC-2026-0258"]

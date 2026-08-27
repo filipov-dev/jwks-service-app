@@ -1,0 +1,26 @@
+# Without this file GitHub only opens security updates, so ordinary version
+# updates never arrive and the tree drifts until an audit run finds it.
+#
+# The commit prefixes are chosen to match `bucket_for` in scripts/changelog.sh:
+# `deps` and `ci` both land in "Internal", while an unprefixed "Bump x from a
+# to b" would fall through to "Other".
+version: 2
+
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci

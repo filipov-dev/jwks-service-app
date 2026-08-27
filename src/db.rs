@@ -2,7 +2,7 @@
 
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use std::env;
 
 /// Establishes a connection to the PostgreSQL database.
