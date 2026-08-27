@@ -90,9 +90,22 @@ never let the needs of one particular consumer become the contract.
 - **`Cargo.lock` is committed together with `Cargo.toml`** — the lockfile
   carries the crate's own version, so a bump that leaves it behind makes the
   next build dirty.
-- **Keep `version` the first `version =` line in `Cargo.toml`.** The release and
-  image workflows read it with `grep -m1 'version' Cargo.toml`; a dependency
-  line above it would tag the release with a dependency's version.
+- **Keep `version` the first line of `Cargo.toml` that starts with `version`.**
+  The release and image workflows read it with `grep -m1 '^version' Cargo.toml`;
+  a dependency table written in the long form (`[dependencies.foo]` followed by
+  its own `version =`) placed above it would tag the release with a
+  dependency's version.
+- **Release notes and `CHANGELOG.md` are generated from commit subjects by
+  `scripts/changelog.sh`.** `release.yml` runs it with no arguments to build the
+  body of the GitHub Release; `--all` regenerates the whole file. The subject
+  line *is* the changelog entry, so write it to be read on its own:
+  `type(scope): what changed (JWKSAPP-N)`. Anything that does not parse as a
+  conventional commit lands in "Other"; the mapping of types onto sections is
+  `bucket_for` in the script, and a new type is added there.
+- **The section of a new version is written into `CHANGELOG.md` in the same
+  change that bumps the version** — `scripts/changelog.sh --insert`. The tag is
+  cut only after the merge, so regenerating with `--all` at that moment would
+  file the change under "Unreleased" instead of under its number.
 - **Release images are built on native runners per platform.** Under QEMU
   emulation `cc`/`collect2` segfaults while linking the aarch64 build scripts —
   that is what broke the 2.0.0 image.

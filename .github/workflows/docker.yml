@@ -130,7 +130,7 @@ jobs:
       - name: Get version from Cargo.toml
         id: version
         run: |
-          echo "VERSION=$(grep -m1 'version' Cargo.toml | cut -d '"' -f 2)" >> "$GITHUB_ENV"
+          echo "VERSION=$(grep -m1 '^version' Cargo.toml | cut -d '"' -f 2)" >> "$GITHUB_ENV"
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
