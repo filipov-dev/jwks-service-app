@@ -1,3 +1,7 @@
 /target
 .env
 .idea
+
+# Internal agent notes; the canonical copy lives on the wiki
+# (homepage/projects/jwks-service-app/agents-internal)
+AGENTS_INTERNAL.md
