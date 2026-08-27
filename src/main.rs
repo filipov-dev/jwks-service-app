@@ -3,7 +3,7 @@
 use actix_cors::Cors;
 use actix_web::*;
 use diesel_migrations::MigrationHarness;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use jwks_service_app::{app_config, MIGRATIONS};
 use std::env;
 

@@ -27,6 +27,13 @@ never let the needs of one particular consumer become the contract.
 - **What gates a change:** CI runs `cargo clippy -- -D warnings`, `cargo test`
   with coverage, and `cargo audit`. The test suite is not hermetic — it needs
   `DATABASE_URL` pointing at a database with the migrations applied.
+- **An advisory is silenced only in `.cargo/audit.toml`, with a reason and a
+  revisit date.** cargo-audit reads that path relative to the working directory
+  — a file at the repository root is picked up by nothing, and a `--ignore`
+  flag in the workflow hides the reason from everyone reading the tree. The
+  entry is for advisories this repository cannot act on: a vulnerable version
+  reached only through a dependency that has no fixed release. Anything
+  `cargo update` can move is updated instead of ignored.
 
 ## Conventions
 

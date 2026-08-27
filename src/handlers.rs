@@ -7,7 +7,7 @@ use crate::schema::jwks::dsl::*;
 use actix_web::{web, HttpResponse, Responder};
 use chrono::Utc;
 use diesel::prelude::*;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use std::env;
 use uuid::Uuid;
 
