@@ -13,6 +13,23 @@ Two sections are added to the six of Keep a Changelog: "Documentation" (client
 examples and operations instructions — changes for the consumer of the service)
 and "Internal" (CI, tests, formatting).
 
+## [2.0.4] - 2026-08-27
+
+### Security
+
+- **deps**: close the open cargo audit advisories (JWKSAPP-42)
+
+### Internal
+
+- add a dependabot config and refresh the workflow actions (JWKSAPP-42)
+
+### Other
+
+- Bump bytes from 1.10.0 to 1.11.1
+- Bump actix-http from 3.9.0 to 3.12.1
+- Bump openssl from 0.10.70 to 0.10.80
+- Bump tokio from 1.43.0 to 1.46.1
+
 ## [2.0.2] - 2026-08-27
 
 ### Internal
@@ -93,7 +110,8 @@ and "Internal" (CI, tests, formatting).
 - - Generate RSA, EC, and Ed25519 keys. - Store keys in PostgreSQL. - API for retrieving public keys in JWK format. - Automatic OpenAPI documentation generation. - Interactive documentation via Swagger UI. - Soft deletion of keys. - Expiration of private keys and entire keys.
 - - Generate RSA, EC, and Ed25519 keys. - Store keys in PostgreSQL. - API for retrieving public keys in JWK format. - Automatic OpenAPI documentation generation. - Interactive documentation via Swagger UI. - Soft deletion of keys. - Expiration of private keys and entire keys.
 
-[Unreleased]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.4...HEAD
+[2.0.4]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.2...v2.0.4
 [2.0.2]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/filipov-dev/jwks-service-app/compare/v1.1.0...v2.0.0

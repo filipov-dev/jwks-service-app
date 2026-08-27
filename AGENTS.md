@@ -27,6 +27,10 @@ never let the needs of one particular consumer become the contract.
 - **What gates a change:** CI runs `cargo clippy -- -D warnings`, `cargo test`
   with coverage, and `cargo audit`. The test suite is not hermetic — it needs
   `DATABASE_URL` pointing at a database with the migrations applied.
+- **Dependency and action updates arrive weekly from
+  `.github/dependabot.yml`** (the `cargo` and `github-actions` ecosystems). The
+  commit prefixes are set there to `deps` and `ci` so that the updates are
+  filed by `scripts/changelog.sh` under "Internal" instead of "Other".
 - **An advisory is silenced only in `.cargo/audit.toml`, with a reason and a
   revisit date.** cargo-audit reads that path relative to the working directory
   — a file at the repository root is picked up by nothing, and a `--ignore`
@@ -94,6 +98,11 @@ never let the needs of one particular consumer become the contract.
 - **A version is never reused and never walked back.** The tag `v<version>` and
   the image tag already exist; re-releasing the same number silently moves
   `latest` onto different bits. Roll forward with a new patch instead.
+- **A dependabot pull request is not exempt from the version bump.** It arrives
+  with `Cargo.toml` and `Cargo.lock` changed and the version untouched, so
+  merging it as is publishes nothing and leaves the next change to carry
+  someone else's dependency update into its release. Add the patch bump and the
+  `CHANGELOG.md` section on the dependabot branch before merging.
 - **`Cargo.lock` is committed together with `Cargo.toml`** — the lockfile
   carries the crate's own version, so a bump that leaves it behind makes the
   next build dirty.

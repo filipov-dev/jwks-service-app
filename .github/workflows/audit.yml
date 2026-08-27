@@ -5,22 +5,32 @@ on:
     branches:
       - master
   schedule:
-    - cron: '0 0 * * *' # Запускать каждый день в полночь
+    - cron: '0 0 * * *' # Run daily at midnight
+  # On demand: after a period of inactivity GitHub disables a workflow that
+  # only runs on a schedule, and this one had been sitting in
+  # `disabled_inactivity` — nine advisories went unnoticed because of it. A
+  # manual trigger makes it possible to check the state of the tree without
+  # waiting for a pull request or for midnight.
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
+      # --locked: cargo-audit is built with its own lockfile, so a fresh
+      # advisory-db release cannot break the install step.
       - name: Install cargo-audit
-        run: cargo install cargo-audit
+        run: cargo install cargo-audit --locked
 
+      # The ignore list, with reasons and revisit dates, is in
+      # .cargo/audit.toml — cargo-audit reads it from the checkout directory.
       - name: Run cargo audit
         run: cargo audit
