@@ -1,0 +1,15 @@
+# The toolchain the repository is built and linted with. rustup reads this file
+# and switches to it for every cargo invocation inside the tree, so a local
+# clippy no longer depends on whatever the developer installed last: new lints
+# appear between releases, and a change that passed locally used to fail in CI
+# on a newer compiler.
+#
+# The channel is the moving `stable`, the same one CI installs through
+# `dtolnay/rust-toolchain@stable` — the point is that everyone is on the same
+# stable, not that the tree is frozen on one number. The release image is the
+# exception and pins an exact version (`RUSTUP_TOOLCHAIN` in
+# deployments/prod/Dockerfile): a published binary is built by a known compiler,
+# and the env var takes precedence over this file.
+[toolchain]
+channel = "stable"
+components = ["clippy", "rustfmt"]

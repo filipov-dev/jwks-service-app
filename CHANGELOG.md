@@ -13,6 +13,12 @@ Two sections are added to the six of Keep a Changelog: "Documentation" (client
 examples and operations instructions — changes for the consumer of the service)
 and "Internal" (CI, tests, formatting).
 
+## [2.0.5] - 2026-08-28
+
+### Internal
+
+- pin the toolchain and every container image (JWKSAPP-10)
+
 ## [2.0.4] - 2026-08-27
 
 ### Security
@@ -110,7 +116,8 @@ and "Internal" (CI, tests, formatting).
 - - Generate RSA, EC, and Ed25519 keys. - Store keys in PostgreSQL. - API for retrieving public keys in JWK format. - Automatic OpenAPI documentation generation. - Interactive documentation via Swagger UI. - Soft deletion of keys. - Expiration of private keys and entire keys.
 - - Generate RSA, EC, and Ed25519 keys. - Store keys in PostgreSQL. - API for retrieving public keys in JWK format. - Automatic OpenAPI documentation generation. - Interactive documentation via Swagger UI. - Soft deletion of keys. - Expiration of private keys and entire keys.
 
-[Unreleased]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.4...HEAD
+[Unreleased]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.5...HEAD
+[2.0.5]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.4...v2.0.5
 [2.0.4]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.2...v2.0.4
 [2.0.2]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.0...v2.0.1
