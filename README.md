@@ -51,8 +51,14 @@ docker run -d \
   -e DATABASE_URL=postgres://user:password@db:5432/jwk_db \
   -e HOST=0.0.0.0 \
   -p 8080:8080 \
-  filipov/jwks-service-app:latest
+  filipov/jwks-service-app:2.0.5
 ```
+
+The tag is a version and not `latest` on purpose: `latest` moves onto the next
+major release as soon as one is published, so a consumer that pulls it gets a
+breaking change without asking for it. Pin the version you tested against and
+raise it deliberately; the published tags are listed on the
+[releases page](https://github.com/filipov-dev/jwks-service-app/releases).
 
 The dev Compose setup in `deployments/dev/docker-compose.yml` already sets `HOST: 0.0.0.0`.
 `PORT` must be a number between 1 and 65535; any other value stops the service at startup with
