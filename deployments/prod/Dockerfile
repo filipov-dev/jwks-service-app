@@ -5,7 +5,7 @@
 #
 # Rust 1.90 slim-bookworm: bookworm is needed to link against the same libssl3
 # as the runner stage.
-FROM rust:1.90-slim-bookworm AS chef
+FROM rust:1.98-slim-bookworm AS chef
 
 # Pin the toolchain inside the image so the released binary is built by a known
 # compiler: without it cargo would pull the latest stable, and `cargo chef cook`
