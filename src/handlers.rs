@@ -20,7 +20,7 @@ use uuid::Uuid;
     get,
     path = "/.well-known/jwks.json",
     responses(
-        (status = 200, description = "Список JWK", body = Jwks)
+        (status = 200, description = "List of JWKs", body = Jwks)
     )
 )]
 pub async fn jwks_handler() -> impl Responder {
@@ -79,12 +79,12 @@ pub async fn add_jwk_handler(input: web::Json<AlgorithmInput>) -> impl Responder
 
     // Get expiration times from environment variables
     let private_key_expiration_seconds: i64 = env::var("PRIVATE_KEY_EXPIRATION_SECONDS")
-        .unwrap_or_else(|_| "86400".to_string()) // По умолчанию 1 день
+        .unwrap_or_else(|_| "86400".to_string()) // Default: 1 day
         .parse()
         .expect("PRIVATE_KEY_EXPIRATION_SECONDS must be a number");
 
     let key_expiration_seconds: i64 = env::var("KEY_EXPIRATION_SECONDS")
-        .unwrap_or_else(|_| "172800".to_string()) // По умолчанию 2 дня
+        .unwrap_or_else(|_| "172800".to_string()) // Default: 2 days
         .parse()
         .expect("KEY_EXPIRATION_SECONDS must be a number");
 
