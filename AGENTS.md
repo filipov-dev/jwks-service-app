@@ -26,8 +26,8 @@ never let the needs of one particular consumer become the contract.
 - **No secrets in the repository.** CI credentials live in GitHub Secrets.
 - **What gates a change: one workflow, `.github/workflows/ci.yml`.** It runs
   `cargo fmt --all -- --check`, then `cargo clippy --all-targets -- -D
-  warnings`, then the build, the tests and coverage — in that order, on every
-  pull request and on every push to `master`. Formatting comes first because it
+  warnings`, then the build and the tests — in that order, on every pull
+  request and on every push to `master`. Formatting comes first because it
   is the only step that compiles nothing, so an unformatted tree costs seconds
   instead of a build; `--all-targets` is what puts the test code under the same
   lints as the crate. `master` is in the triggers on purpose: with the checks
@@ -35,6 +35,12 @@ never let the needs of one particular consumer become the contract.
   verified somewhere else. `cargo audit` keeps its own workflow — it also runs
   on a schedule, and an advisory published overnight is not a reason to fail an
   unrelated pull request.
+- **Coverage is not part of the pipeline, and putting it back needs a reason
+  first.** `cargo tarpaulin` runs the whole suite a second time and installs
+  itself to do it; while the number gates nothing and is uploaded nowhere, that
+  is a cost every pull request pays for a line in a log nobody opens.
+  `README.md` says how to get it locally. It belongs in CI again once it has a
+  job — a threshold it fails under, or a report a person actually reads.
 - **A test that touches the database goes through `tests/common`.** Handlers
   open their own connection from `DATABASE_URL` on every call, so a test cannot
   wrap its work in a transaction and roll it back — nothing it holds is visible
