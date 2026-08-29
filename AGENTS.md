@@ -27,10 +27,33 @@ never let the needs of one particular consumer become the contract.
 - **What gates a change:** CI runs `cargo clippy -- -D warnings`, `cargo test`
   with coverage, and `cargo audit`. The test suite is not hermetic — it needs
   `DATABASE_URL` pointing at a database with the migrations applied.
-- **Dependency and action updates arrive weekly from
-  `.github/dependabot.yml`** (the `cargo` and `github-actions` ecosystems). The
-  commit prefixes are set there to `deps` and `ci` so that the updates are
-  filed by `scripts/changelog.sh` under "Internal" instead of "Other".
+- **The toolchain comes from `rust-toolchain.toml`** — the moving `stable`
+  channel with `clippy` and `rustfmt`, the same channel CI installs. Without it
+  the local compiler is whatever the developer installed last, lints that
+  appeared in a newer stable are invisible until the pipeline fails on them.
+  The release image is the one exception: it pins an exact version through
+  `RUSTUP_TOOLCHAIN`, which takes precedence over this file.
+- **The Docker build context is an allowlist in `.dockerignore`:** everything
+  is ignored and only what the release build reads — `Cargo.toml`,
+  `Cargo.lock`, `src/`, `migrations/` — is let back in. A denylist leaks by
+  default, and `COPY . .` would otherwise carry `target/` and a local `.env`
+  into the image. **A new build input is added there in the same change that
+  introduces it**, otherwise the build fails inside the container on a file
+  that exists in the tree.
+- **Container images are pinned to an exact version, never to `:latest` or to a
+  floating major.** That covers the base images of both Dockerfiles, the
+  database of the dev stand, the service container of the test workflow and the
+  `docker run` examples in `README.md` and `deployments/prod/README.md`.
+  Versioning protects pinned consumers only, and an unpinned one takes the next
+  major silently on its next pull. The pins are kept current by the `docker`
+  and `docker-compose` entries in `.github/dependabot.yml`; the example tag in
+  the two READMEs is not release metadata and is raised only when a major
+  release makes it misleading.
+- **Dependency, action and image updates arrive weekly from
+  `.github/dependabot.yml`** (the `cargo`, `github-actions`, `docker` and
+  `docker-compose` ecosystems). The commit prefixes are set there to `deps` and
+  `ci` so that the updates are filed by `scripts/changelog.sh` under "Internal"
+  instead of "Other".
 - **An advisory is silenced only in `.cargo/audit.toml`, with a reason and a
   revisit date.** cargo-audit reads that path relative to the working directory
   — a file at the repository root is picked up by nothing, and a `--ignore`
