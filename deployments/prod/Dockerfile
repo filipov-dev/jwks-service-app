@@ -3,7 +3,7 @@
 # edit no longer rebuilds openssl/actix-web from scratch — the dependency layer
 # is reused (in CI through the GHA cache, see .github/workflows/docker.yml).
 #
-# Rust 1.90 slim-bookworm: bookworm is needed to link against the same libssl3
+# Rust 1.98 slim-bookworm: bookworm is needed to link against the same libssl3
 # as the runner stage.
 FROM rust:1.98-slim-bookworm AS chef
 
@@ -11,7 +11,7 @@ FROM rust:1.98-slim-bookworm AS chef
 # compiler: without it cargo would pull the latest stable, and `cargo chef cook`
 # (which runs before the sources are copied) could use a different compiler than
 # the later `cargo build`, invalidating the dependency layer on every run.
-ENV RUSTUP_TOOLCHAIN=1.90.0
+ENV RUSTUP_TOOLCHAIN=1.98.0
 
 # openssl-sys needs pkg-config and the libssl headers at build time; libpq is
 # required by diesel's postgres backend.
