@@ -13,6 +13,13 @@ Two sections are added to the six of Keep a Changelog: "Documentation" (client
 examples and operations instructions — changes for the consumer of the service)
 and "Internal" (CI, tests, formatting).
 
+## [2.0.11] - 2026-08-29
+
+### Internal
+
+- bump utoipa from 3.5.0 to 5.5.0
+- release 2.0.11 with the spec emitted as OpenAPI 3.1
+
 ## [2.0.10] - 2026-08-29
 
 ### Internal
@@ -151,7 +158,8 @@ and "Internal" (CI, tests, formatting).
 - - Generate RSA, EC, and Ed25519 keys. - Store keys in PostgreSQL. - API for retrieving public keys in JWK format. - Automatic OpenAPI documentation generation. - Interactive documentation via Swagger UI. - Soft deletion of keys. - Expiration of private keys and entire keys.
 - - Generate RSA, EC, and Ed25519 keys. - Store keys in PostgreSQL. - API for retrieving public keys in JWK format. - Automatic OpenAPI documentation generation. - Interactive documentation via Swagger UI. - Soft deletion of keys. - Expiration of private keys and entire keys.
 
-[Unreleased]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.10...HEAD
+[Unreleased]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.11...HEAD
+[2.0.11]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.10...v2.0.11
 [2.0.10]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.9...v2.0.10
 [2.0.9]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.8...v2.0.9
 [2.0.8]: https://github.com/filipov-dev/jwks-service-app/compare/v2.0.7...v2.0.8
