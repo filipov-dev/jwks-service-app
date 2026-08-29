@@ -15,7 +15,7 @@ jobs:
       postgres:
         # Same pin as the dev stand in deployments/dev/docker-compose.yml, so
         # the tests run against the database version development uses.
-        image: postgres:13.23
+        image: postgres:18.6
         env:
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
