@@ -5,7 +5,7 @@ services:
     # Pinned to a patch version: a floating tag (`postgres:13`, let alone
     # `:latest`) silently changes the database under the dev stand on the next
     # `docker compose pull`. Dependabot keeps the pin moving.
-    image: postgres:13.23
+    image: postgres:18.6
     environment:
       POSTGRES_USER: user  # PostgreSQL username
       POSTGRES_PASSWORD: password  # PostgreSQL password
