@@ -1,0 +1,107 @@
+name: CI
+
+# Everything that gates a change lives in one workflow and runs in one order:
+# the cheap steps first, so a tree that is not formatted and does not lint never
+# reaches a compiler or a database.
+on:
+  pull_request:
+    branches:
+      - master
+  # `master` used to be the one branch whose code went through no checks at all:
+  # the pipeline ran on pull requests only, so whatever was merged — or pushed
+  # straight to the branch — was last verified somewhere else.
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+# A pull request that is pushed to three times in a row does not need three
+# full runs, only the last one. A push to `master` is never cancelled: every
+# commit on the branch is verified on its own.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    # One job rather than one per step: the four cargo invocations share a
+    # target directory and a cache, and splitting them would mean compiling the
+    # dependency tree from scratch in every job.
+    services:
+      postgres:
+        # Same pin as the dev stand in deployments/dev/docker-compose.yml, so
+        # the tests run against the database version development uses.
+        # Dependabot does not reach into a workflow's `services:` block — it
+        # only rewrites `uses:` — so this one is moved by hand, in the change
+        # that moves the dev stand.
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: jwk_db
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    env:
+      # The suite is not hermetic: it needs a database it may write to. The
+      # migrations are applied by the tests themselves (tests/common), so there
+      # is no schema step and no diesel CLI to install.
+      DATABASE_URL: postgres://user:password@localhost:5432/jwk_db
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # The channel comes from rust-toolchain.toml; the components are named
+      # here as well so the toolchain is complete before the first step runs.
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      # Formatting goes before the cache is even restored: it is the only step
+      # that compiles nothing, so an unformatted tree costs seconds instead of
+      # a build.
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      # Registry, git checkouts, target/ and ~/.cargo/bin — the last one is what
+      # keeps cargo-tarpaulin from being rebuilt from source on every run. The
+      # key is the dependency tree from Cargo.lock plus the compiler version;
+      # the crate's own version, which every commit in this repository bumps, is
+      # filtered out of it and does not throw the cache away.
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-bin: true
+
+      - name: Install libpq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev
+
+      # --all-targets: without it the tests, the examples and the benches are
+      # linted by nothing, and test code is where the sloppy patterns collect.
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Build
+        run: cargo build --all-targets
+
+      - name: Run tests
+        run: cargo test
+
+      # Coverage is reported, not enforced: no threshold gates a change, the
+      # number is there to be read in the log.
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin --locked
+
+      - name: Run coverage
+        run: cargo tarpaulin --ignore-tests
