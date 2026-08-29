@@ -3,7 +3,7 @@
 //! Supports generation of RSA, Elliptic Curve (EC), and Edwards-curve Digital Signature Algorithm (EdDSA)
 //! key pairs along with their JWK representations. RSA keys include X.509 certificate information.
 
-use std::error::Error;
+use crate::models::JwkData;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use openssl::bn::{BigNum, BigNumContext, BigNumRef};
 use openssl::ec::{EcGroup, EcKey};
@@ -11,9 +11,9 @@ use openssl::nid::Nid;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use openssl::x509::{X509Name, X509};
-use sha1::{Sha1, Digest};
+use sha1::{Digest, Sha1};
+use std::error::Error;
 use uuid::Uuid;
-use crate::models::{JwkData};
 
 /// Generates an RSA key pair and associated JWK data including X.509 certificate information.
 ///
@@ -45,10 +45,10 @@ pub fn generate_rsa_jwk_data(key_size: u32, alg: &str) -> Result<JwkData, Box<dy
     let name = name.build();
 
     let digest = match alg {
-        "RS256" => { openssl::hash::MessageDigest::sha256() }
-        "RS384" => { openssl::hash::MessageDigest::sha384() }
-        "RS512" => { openssl::hash::MessageDigest::sha512() }
-        _ => { return Err(Box::from("Unsupported algorithm")) }
+        "RS256" => openssl::hash::MessageDigest::sha256(),
+        "RS384" => openssl::hash::MessageDigest::sha384(),
+        "RS512" => openssl::hash::MessageDigest::sha512(),
+        _ => return Err(Box::from("Unsupported algorithm")),
     };
 
     let mut cert_builder = X509::builder()?;
@@ -105,22 +105,25 @@ fn test_is_rsa_key_valid_rs256() {
 
     let pkey_private = {
         let new_private_key = URL_SAFE_NO_PAD.decode(jwk.private_key.clone()).unwrap();
-        PKey::private_key_from_pkcs8(&*new_private_key)
-    }.unwrap();
+        PKey::private_key_from_pkcs8(&new_private_key)
+    }
+    .unwrap();
 
     let mut signer = Signer::new_without_digest(&pkey_private).unwrap();
     let signature = signer.sign_oneshot_to_vec(control_data.as_bytes()).unwrap();
 
-    let jwk_n = BigNum::from_slice(&*URL_SAFE_NO_PAD.decode(jwk.n.unwrap()).unwrap()).unwrap();
-    let jwk_e = BigNum::from_slice(&*URL_SAFE_NO_PAD.decode(jwk.e.unwrap()).unwrap()).unwrap();
+    let jwk_n = BigNum::from_slice(&URL_SAFE_NO_PAD.decode(jwk.n.unwrap()).unwrap()).unwrap();
+    let jwk_e = BigNum::from_slice(&URL_SAFE_NO_PAD.decode(jwk.e.unwrap()).unwrap()).unwrap();
 
     let rsa_public_key = Rsa::from_public_components(jwk_n, jwk_e).unwrap();
     let pkey_public = PKey::from_rsa(rsa_public_key).unwrap();
 
     let mut verifier = Verifier::new_without_digest(&pkey_public).unwrap();
-    let result = verifier.verify_oneshot(&signature, control_data.as_bytes()).unwrap();
+    let result = verifier
+        .verify_oneshot(&signature, control_data.as_bytes())
+        .unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 #[test]
@@ -133,22 +136,25 @@ fn test_is_rsa_key_valid_rs384() {
 
     let pkey_private = {
         let new_private_key = URL_SAFE_NO_PAD.decode(jwk.private_key.clone()).unwrap();
-        PKey::private_key_from_pkcs8(&*new_private_key)
-    }.unwrap();
+        PKey::private_key_from_pkcs8(&new_private_key)
+    }
+    .unwrap();
 
     let mut signer = Signer::new_without_digest(&pkey_private).unwrap();
     let signature = signer.sign_oneshot_to_vec(control_data.as_bytes()).unwrap();
 
-    let jwk_n = BigNum::from_slice(&*URL_SAFE_NO_PAD.decode(jwk.n.unwrap()).unwrap()).unwrap();
-    let jwk_e = BigNum::from_slice(&*URL_SAFE_NO_PAD.decode(jwk.e.unwrap()).unwrap()).unwrap();
+    let jwk_n = BigNum::from_slice(&URL_SAFE_NO_PAD.decode(jwk.n.unwrap()).unwrap()).unwrap();
+    let jwk_e = BigNum::from_slice(&URL_SAFE_NO_PAD.decode(jwk.e.unwrap()).unwrap()).unwrap();
 
     let rsa_public_key = Rsa::from_public_components(jwk_n, jwk_e).unwrap();
     let pkey_public = PKey::from_rsa(rsa_public_key).unwrap();
 
     let mut verifier = Verifier::new_without_digest(&pkey_public).unwrap();
-    let result = verifier.verify_oneshot(&signature, control_data.as_bytes()).unwrap();
+    let result = verifier
+        .verify_oneshot(&signature, control_data.as_bytes())
+        .unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 #[test]
@@ -161,22 +167,25 @@ fn test_is_rsa_key_valid_rs512() {
 
     let pkey_private = {
         let new_private_key = URL_SAFE_NO_PAD.decode(jwk.private_key.clone()).unwrap();
-        PKey::private_key_from_pkcs8(&*new_private_key)
-    }.unwrap();
+        PKey::private_key_from_pkcs8(&new_private_key)
+    }
+    .unwrap();
 
     let mut signer = Signer::new_without_digest(&pkey_private).unwrap();
     let signature = signer.sign_oneshot_to_vec(control_data.as_bytes()).unwrap();
 
-    let jwk_n = BigNum::from_slice(&*URL_SAFE_NO_PAD.decode(jwk.n.unwrap()).unwrap()).unwrap();
-    let jwk_e = BigNum::from_slice(&*URL_SAFE_NO_PAD.decode(jwk.e.unwrap()).unwrap()).unwrap();
+    let jwk_n = BigNum::from_slice(&URL_SAFE_NO_PAD.decode(jwk.n.unwrap()).unwrap()).unwrap();
+    let jwk_e = BigNum::from_slice(&URL_SAFE_NO_PAD.decode(jwk.e.unwrap()).unwrap()).unwrap();
 
     let rsa_public_key = Rsa::from_public_components(jwk_n, jwk_e).unwrap();
     let pkey_public = PKey::from_rsa(rsa_public_key).unwrap();
 
     let mut verifier = Verifier::new_without_digest(&pkey_public).unwrap();
-    let result = verifier.verify_oneshot(&signature, control_data.as_bytes()).unwrap();
+    let result = verifier
+        .verify_oneshot(&signature, control_data.as_bytes())
+        .unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 /// Generates an Elliptic Curve key pair and associated JWK data.
@@ -207,10 +216,10 @@ fn test_is_rsa_key_valid_rs512() {
 /// EC keys do not include X.509 certificate information in this implementation.
 pub fn generate_ec_jwk_data(alg: &str) -> Result<JwkData, Box<dyn Error>> {
     let curve = match alg {
-        "ES256" => { Nid::X9_62_PRIME256V1 }
-        "ES384" => { Nid::SECP384R1 }
-        "ES512" => { Nid::SECP521R1 }
-        _ => { return Err(Box::from("Unsupported algorithm")) }
+        "ES256" => Nid::X9_62_PRIME256V1,
+        "ES384" => Nid::SECP384R1,
+        "ES512" => Nid::SECP521R1,
+        _ => return Err(Box::from("Unsupported algorithm")),
     };
 
     let group = EcGroup::from_curve_name(curve)?;
@@ -230,17 +239,17 @@ pub fn generate_ec_jwk_data(alg: &str) -> Result<JwkData, Box<dyn Error>> {
     };
 
     let crv = match alg {
-        "ES256" => { "P-256".to_string() }
-        "ES384" => { "P-384".to_string() }
-        "ES512" => { "P-521".to_string() }
-        _ => { return Err(Box::from("Unsupported algorithm")) }
+        "ES256" => "P-256".to_string(),
+        "ES384" => "P-384".to_string(),
+        "ES512" => "P-521".to_string(),
+        _ => return Err(Box::from("Unsupported algorithm")),
     };
 
     let alg = alg.to_string();
 
     let private_key_pem = PKey::from_ec_key(ec_key)?.private_key_to_pkcs8()?;
     let private_key_base64 = URL_SAFE_NO_PAD.encode(private_key_pem.clone());
-    
+
     Ok(JwkData {
         id: Default::default(),
         kty: "EC".to_string(),
@@ -263,7 +272,7 @@ pub fn generate_ec_jwk_data(alg: &str) -> Result<JwkData, Box<dyn Error>> {
 
 #[test]
 fn test_is_ec_key_valid_es256() {
-    use openssl::ec::{EcPoint};
+    use openssl::ec::EcPoint;
     use openssl::sign::{Signer, Verifier};
 
     let jwk: JwkData = generate_ec_jwk_data("ES256").unwrap();
@@ -272,8 +281,9 @@ fn test_is_ec_key_valid_es256() {
 
     let pkey_private = {
         let new_private_key = URL_SAFE_NO_PAD.decode(jwk.private_key.clone()).unwrap();
-        PKey::private_key_from_pkcs8(&*new_private_key)
-    }.unwrap();
+        PKey::private_key_from_pkcs8(&new_private_key)
+    }
+    .unwrap();
 
     let mut signer = Signer::new_without_digest(&pkey_private).unwrap();
     let signature = signer.sign_oneshot_to_vec(control_data.as_bytes()).unwrap();
@@ -284,26 +294,30 @@ fn test_is_ec_key_valid_es256() {
     let y_bytes = URL_SAFE_NO_PAD.decode(jwk.y.unwrap()).unwrap();
 
     // Конвертируем байты в BigNum
-    let x_bn = BigNum::from_slice(&*x_bytes).unwrap();
-    let y_bn = BigNum::from_slice(&*y_bytes).unwrap();
+    let x_bn = BigNum::from_slice(&x_bytes).unwrap();
+    let y_bn = BigNum::from_slice(&y_bytes).unwrap();
 
     let mut ctx = BigNumContext::new().unwrap();
     let mut point = EcPoint::new(&group).unwrap();
-    point.set_affine_coordinates_gfp(&group, &x_bn, &y_bn, &mut ctx).unwrap();
+    point
+        .set_affine_coordinates_gfp(&group, &x_bn, &y_bn, &mut ctx)
+        .unwrap();
 
     let ec_key_public = EcKey::from_public_key(&group, &point).unwrap();
 
     let pkey_public = PKey::from_ec_key(ec_key_public).unwrap();
 
     let mut verifier = Verifier::new_without_digest(&pkey_public).unwrap();
-    let result = verifier.verify_oneshot(&signature, control_data.as_bytes()).unwrap();
+    let result = verifier
+        .verify_oneshot(&signature, control_data.as_bytes())
+        .unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 #[test]
 fn test_is_ec_key_valid_es384() {
-    use openssl::ec::{EcPoint};
+    use openssl::ec::EcPoint;
     use openssl::sign::{Signer, Verifier};
 
     let jwk: JwkData = generate_ec_jwk_data("ES384").unwrap();
@@ -312,8 +326,9 @@ fn test_is_ec_key_valid_es384() {
 
     let pkey_private = {
         let new_private_key = URL_SAFE_NO_PAD.decode(jwk.private_key.clone()).unwrap();
-        PKey::private_key_from_pkcs8(&*new_private_key)
-    }.unwrap();
+        PKey::private_key_from_pkcs8(&new_private_key)
+    }
+    .unwrap();
 
     let mut signer = Signer::new_without_digest(&pkey_private).unwrap();
     let signature = signer.sign_oneshot_to_vec(control_data.as_bytes()).unwrap();
@@ -324,26 +339,30 @@ fn test_is_ec_key_valid_es384() {
     let y_bytes = URL_SAFE_NO_PAD.decode(jwk.y.unwrap()).unwrap();
 
     // Конвертируем байты в BigNum
-    let x_bn = BigNum::from_slice(&*x_bytes).unwrap();
-    let y_bn = BigNum::from_slice(&*y_bytes).unwrap();
+    let x_bn = BigNum::from_slice(&x_bytes).unwrap();
+    let y_bn = BigNum::from_slice(&y_bytes).unwrap();
 
     let mut ctx = BigNumContext::new().unwrap();
     let mut point = EcPoint::new(&group).unwrap();
-    point.set_affine_coordinates_gfp(&group, &x_bn, &y_bn, &mut ctx).unwrap();
+    point
+        .set_affine_coordinates_gfp(&group, &x_bn, &y_bn, &mut ctx)
+        .unwrap();
 
     let ec_key_public = EcKey::from_public_key(&group, &point).unwrap();
 
     let pkey_public = PKey::from_ec_key(ec_key_public).unwrap();
 
     let mut verifier = Verifier::new_without_digest(&pkey_public).unwrap();
-    let result = verifier.verify_oneshot(&signature, control_data.as_bytes()).unwrap();
+    let result = verifier
+        .verify_oneshot(&signature, control_data.as_bytes())
+        .unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 #[test]
 fn test_is_ec_key_valid_es512() {
-    use openssl::ec::{EcPoint};
+    use openssl::ec::EcPoint;
     use openssl::sign::{Signer, Verifier};
 
     let jwk: JwkData = generate_ec_jwk_data("ES512").unwrap();
@@ -352,8 +371,9 @@ fn test_is_ec_key_valid_es512() {
 
     let pkey_private = {
         let new_private_key = URL_SAFE_NO_PAD.decode(jwk.private_key.clone()).unwrap();
-        PKey::private_key_from_pkcs8(&*new_private_key)
-    }.unwrap();
+        PKey::private_key_from_pkcs8(&new_private_key)
+    }
+    .unwrap();
 
     let mut signer = Signer::new_without_digest(&pkey_private).unwrap();
     let signature = signer.sign_oneshot_to_vec(control_data.as_bytes()).unwrap();
@@ -364,21 +384,25 @@ fn test_is_ec_key_valid_es512() {
     let y_bytes = URL_SAFE_NO_PAD.decode(jwk.y.unwrap()).unwrap();
 
     // Конвертируем байты в BigNum
-    let x_bn = BigNum::from_slice(&*x_bytes).unwrap();
-    let y_bn = BigNum::from_slice(&*y_bytes).unwrap();
+    let x_bn = BigNum::from_slice(&x_bytes).unwrap();
+    let y_bn = BigNum::from_slice(&y_bytes).unwrap();
 
     let mut ctx = BigNumContext::new().unwrap();
     let mut point = EcPoint::new(&group).unwrap();
-    point.set_affine_coordinates_gfp(&group, &x_bn, &y_bn, &mut ctx).unwrap();
+    point
+        .set_affine_coordinates_gfp(&group, &x_bn, &y_bn, &mut ctx)
+        .unwrap();
 
     let ec_key_public = EcKey::from_public_key(&group, &point).unwrap();
 
     let pkey_public = PKey::from_ec_key(ec_key_public).unwrap();
 
     let mut verifier = Verifier::new_without_digest(&pkey_public).unwrap();
-    let result = verifier.verify_oneshot(&signature, control_data.as_bytes()).unwrap();
+    let result = verifier
+        .verify_oneshot(&signature, control_data.as_bytes())
+        .unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 /// Generates an EdDSA key pair and associated JWK data.
@@ -404,9 +428,9 @@ fn test_is_ec_key_valid_es512() {
 /// - OpenSSL operations fail during key generation
 pub fn generate_eddsa_jwk_data(crv: &str) -> Result<JwkData, Box<dyn Error>> {
     let pkey = match crv {
-        "Ed25519" => { PKey::generate_ed25519()? }
-        "Ed448" => { PKey::generate_ed448()? }
-        _ => { return Err(Box::from("Unsupported algorithm")) }
+        "Ed25519" => PKey::generate_ed25519()?,
+        "Ed448" => PKey::generate_ed448()?,
+        _ => return Err(Box::from("Unsupported algorithm")),
     };
 
     let public_key_bytes = pkey.raw_public_key()?;
@@ -449,20 +473,23 @@ fn test_is_eddsa_key_valid_ed25519() {
 
     let pkey_private = {
         let new_private_key = URL_SAFE_NO_PAD.decode(jwk.private_key.clone()).unwrap();
-        PKey::private_key_from_pkcs8(&*new_private_key)
-    }.unwrap();
+        PKey::private_key_from_pkcs8(&new_private_key)
+    }
+    .unwrap();
 
     let mut signer = Signer::new_without_digest(&pkey_private).unwrap();
     let signature = signer.sign_oneshot_to_vec(control_data.as_bytes()).unwrap();
 
     let jwk_x = &*URL_SAFE_NO_PAD.decode(jwk.x.unwrap()).unwrap();
 
-    let pkey_public = PKey::public_key_from_raw_bytes(&jwk_x, openssl::pkey::Id::ED25519).unwrap();
+    let pkey_public = PKey::public_key_from_raw_bytes(jwk_x, openssl::pkey::Id::ED25519).unwrap();
 
     let mut verifier = Verifier::new_without_digest(&pkey_public).unwrap();
-    let result = verifier.verify_oneshot(&signature, control_data.as_bytes()).unwrap();
+    let result = verifier
+        .verify_oneshot(&signature, control_data.as_bytes())
+        .unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 }
 
 #[test]
@@ -475,18 +502,21 @@ fn test_is_eddsa_key_valid_ed448() {
 
     let pkey_private = {
         let new_private_key = URL_SAFE_NO_PAD.decode(jwk.private_key.clone()).unwrap();
-        PKey::private_key_from_pkcs8(&*new_private_key)
-    }.unwrap();
+        PKey::private_key_from_pkcs8(&new_private_key)
+    }
+    .unwrap();
 
     let mut signer = Signer::new_without_digest(&pkey_private).unwrap();
     let signature = signer.sign_oneshot_to_vec(control_data.as_bytes()).unwrap();
 
     let jwk_x = &*URL_SAFE_NO_PAD.decode(jwk.x.unwrap()).unwrap();
 
-    let pkey_public = PKey::public_key_from_raw_bytes(&jwk_x, openssl::pkey::Id::ED448).unwrap();
+    let pkey_public = PKey::public_key_from_raw_bytes(jwk_x, openssl::pkey::Id::ED448).unwrap();
 
     let mut verifier = Verifier::new_without_digest(&pkey_public).unwrap();
-    let result = verifier.verify_oneshot(&signature, control_data.as_bytes()).unwrap();
+    let result = verifier
+        .verify_oneshot(&signature, control_data.as_bytes())
+        .unwrap();
 
-    assert_eq!(result, true);
+    assert!(result);
 }
