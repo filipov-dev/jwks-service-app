@@ -293,7 +293,7 @@ fn test_is_ec_key_valid_es256() {
     let x_bytes = URL_SAFE_NO_PAD.decode(jwk.x.unwrap()).unwrap();
     let y_bytes = URL_SAFE_NO_PAD.decode(jwk.y.unwrap()).unwrap();
 
-    // Конвертируем байты в BigNum
+    // Convert the bytes into BigNum
     let x_bn = BigNum::from_slice(&x_bytes).unwrap();
     let y_bn = BigNum::from_slice(&y_bytes).unwrap();
 
@@ -338,7 +338,7 @@ fn test_is_ec_key_valid_es384() {
     let x_bytes = URL_SAFE_NO_PAD.decode(jwk.x.unwrap()).unwrap();
     let y_bytes = URL_SAFE_NO_PAD.decode(jwk.y.unwrap()).unwrap();
 
-    // Конвертируем байты в BigNum
+    // Convert the bytes into BigNum
     let x_bn = BigNum::from_slice(&x_bytes).unwrap();
     let y_bn = BigNum::from_slice(&y_bytes).unwrap();
 
@@ -383,7 +383,7 @@ fn test_is_ec_key_valid_es512() {
     let x_bytes = URL_SAFE_NO_PAD.decode(jwk.x.unwrap()).unwrap();
     let y_bytes = URL_SAFE_NO_PAD.decode(jwk.y.unwrap()).unwrap();
 
-    // Конвертируем байты в BigNum
+    // Convert the bytes into BigNum
     let x_bn = BigNum::from_slice(&x_bytes).unwrap();
     let y_bn = BigNum::from_slice(&y_bytes).unwrap();
 
