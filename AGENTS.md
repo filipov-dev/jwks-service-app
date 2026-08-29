@@ -24,9 +24,26 @@ never let the needs of one particular consumer become the contract.
   persistence in `db.rs`/`schema.rs`, request and response shapes in
   `models.rs`, routes and `ApiDoc` in `lib.rs`.
 - **No secrets in the repository.** CI credentials live in GitHub Secrets.
-- **What gates a change:** CI runs `cargo clippy -- -D warnings`, `cargo test`
-  with coverage, and `cargo audit`. The test suite is not hermetic — it needs
-  `DATABASE_URL` pointing at a database with the migrations applied.
+- **What gates a change: one workflow, `.github/workflows/ci.yml`.** It runs
+  `cargo fmt --all -- --check`, then `cargo clippy --all-targets -- -D
+  warnings`, then the build, the tests and coverage — in that order, on every
+  pull request and on every push to `master`. Formatting comes first because it
+  is the only step that compiles nothing, so an unformatted tree costs seconds
+  instead of a build; `--all-targets` is what puts the test code under the same
+  lints as the crate. `master` is in the triggers on purpose: with the checks
+  running on pull requests only, it was the one branch whose code was last
+  verified somewhere else. `cargo audit` keeps its own workflow — it also runs
+  on a schedule, and an advisory published overnight is not a reason to fail an
+  unrelated pull request.
+- **A test that touches the database goes through `tests/common`.** Handlers
+  open their own connection from `DATABASE_URL` on every call, so a test cannot
+  wrap its work in a transaction and roll it back — nothing it holds is visible
+  to the code under test. `TestDatabase::lock()` serializes the database tests
+  instead and, when the test ends, deletes every row that appeared while it held
+  the lock; a hard delete, because the endpoint only marks a key as deleted. It
+  applies the migrations itself, which is why CI needs neither the diesel CLI
+  nor a schema step. The suite is still not hermetic — it needs `DATABASE_URL`
+  pointing at a database it may write to.
 - **The toolchain comes from `rust-toolchain.toml`** — the moving `stable`
   channel with `clippy` and `rustfmt`, the same channel CI installs. Without it
   the local compiler is whatever the developer installed last, lints that
