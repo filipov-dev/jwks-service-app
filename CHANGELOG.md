@@ -18,7 +18,8 @@ and "Internal" (CI, tests, formatting).
 ### Internal
 
 - bump sha1 from 0.10.7 to 0.11.0
-- release 2.0.13
+- release 2.0.12
+- renumber the release to 2.0.13, taken by JWKSAPP-38
 
 ## [2.0.12] - 2026-08-29
 
