@@ -35,6 +35,21 @@ never let the needs of one particular consumer become the contract.
   verified somewhere else. `cargo audit` keeps its own workflow — it also runs
   on a schedule, and an advisory published overnight is not a reason to fail an
   unrelated pull request.
+- **A green `ci` is required to merge into `master`, and the requirement is
+  named after the job.** The `master` ruleset lists `ci` — the job in
+  `ci.yml`, not the workflow — as a required status check, so a pull request
+  cannot be merged while the run is red or still going. Renaming that job
+  silently turns the requirement into a check that never arrives and leaves
+  every pull request waiting forever, so the two names move together or not at
+  all. Two things are deliberately not required: `audit`, because it fails on
+  an advisory published overnight in someone else's crate and would then block
+  every unrelated pull request at once — including the one that fixes it; and
+  the "branch must be up to date" policy, because with a version bump in every
+  commit each merge into `master` already conflicts every open branch, and
+  strict mode would add a full re-run on top of that. The rule matters more
+  here than in most repositories: a merge that touches `Cargo.toml` publishes,
+  a version is never reused, and a bad `latest` reaches consumers before a fix
+  can be rolled forward.
 - **Coverage is not part of the pipeline, and putting it back needs a reason
   first.** `cargo tarpaulin` runs the whole suite a second time and installs
   itself to do it; while the number gates nothing and is uploaded nowhere, that
