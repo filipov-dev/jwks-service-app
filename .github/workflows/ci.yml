@@ -72,15 +72,12 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-      # Registry, git checkouts, target/ and ~/.cargo/bin — the last one is what
-      # keeps cargo-tarpaulin from being rebuilt from source on every run. The
-      # key is the dependency tree from Cargo.lock plus the compiler version;
-      # the crate's own version, which every commit in this repository bumps, is
-      # filtered out of it and does not throw the cache away.
+      # Registry, git checkouts, ~/.cargo/bin and target/. The key is the
+      # dependency tree from Cargo.lock plus the compiler version; the crate's
+      # own version, which every commit in this repository bumps, is filtered
+      # out of it and does not throw the cache away.
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
-        with:
-          cache-bin: true
 
       - name: Install libpq
         run: |
@@ -97,11 +94,3 @@ jobs:
 
       - name: Run tests
         run: cargo test
-
-      # Coverage is reported, not enforced: no threshold gates a change, the
-      # number is there to be read in the log.
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin --locked
-
-      - name: Run coverage
-        run: cargo tarpaulin --ignore-tests
