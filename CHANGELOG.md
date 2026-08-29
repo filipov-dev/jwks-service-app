@@ -13,12 +13,19 @@ Two sections are added to the six of Keep a Changelog: "Documentation" (client
 examples and operations instructions — changes for the consumer of the service)
 and "Internal" (CI, tests, formatting).
 
-## [2.0.15] - 2026-08-29
+## [2.0.16] - 2026-08-29
 
 ### Internal
 
 - bump reqwest from 0.12.28 to 0.13.4
 - release 2.0.15
+- renumber the release to 2.0.16, taken by JWKSAPP-43
+
+## [2.0.15] - 2026-08-29
+
+### Internal
+
+- drop the coverage step from the pipeline (JWKSAPP-43)
 
 ## [2.0.14] - 2026-08-29
 
