@@ -24,3 +24,27 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: ci
+
+  # The base images of the two Dockerfiles and the images of the dev stand are
+  # pinned to exact versions, and a pin that nobody moves is a pin that rots:
+  # these two entries are what keeps the pins current. Docker Compose files are
+  # a separate ecosystem — the `docker` one only looks at Dockerfiles.
+  - package-ecosystem: docker
+    directories:
+      - /deployments/dev
+      - /deployments/prod
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: docker-compose
+    directory: /deployments/dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps

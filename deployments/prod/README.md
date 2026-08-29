@@ -32,8 +32,14 @@ The following environment variables are required to configure the application:
 
 1. **Pull the Docker Image**:
    ```bash
-   docker pull filipov/jwks-service-app:latest
+   docker pull filipov/jwks-service-app:2.0.5
    ```
+
+   Pull a version, not `latest`: the `latest` tag moves onto the next major
+   release the moment one is published, and a major release of this service
+   changes the API or the storage format. Pin the version you tested against
+   and raise it deliberately — the tags are listed on the
+   [releases page](https://github.com/filipov-dev/jwks-service-app/releases).
 
 2. **Run the Container**:
    Replace the placeholders with your actual database credentials and configuration.
@@ -46,7 +52,7 @@ The following environment variables are required to configure the application:
      -e KEY_EXPIRATION_SECONDS=172800 \
      -e HOST=0.0.0.0 \
      -p 8080:8080 \
-     filipov/jwks-service-app:latest
+     filipov/jwks-service-app:2.0.5
    ```
 
    `HOST=0.0.0.0` is required: the service binds to `127.0.0.1` by default, which inside a

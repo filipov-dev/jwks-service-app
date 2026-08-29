@@ -1,0 +1,25 @@
+# Build context for the release image (deployments/prod/Dockerfile, built with
+# the repository root as context). Without this file `COPY . .` shipped the
+# whole tree into the image: `target/` alone is gigabytes of local build
+# artifacts, and `.env` — a real one, not the example — would have travelled
+# into the layer along with it.
+#
+# The list is an allowlist rather than a set of exclusions: everything is
+# ignored and only what the build actually reads is let back in. A denylist
+# leaks by default — the next file dropped into the root ends up in the context
+# unless someone remembers to add it here. A file the build needs is added
+# below, next to the reason it is needed.
+*
+
+# The crate itself. Cargo.lock is what makes the cargo-chef recipe (and with it
+# the cached dependency layer) reproducible.
+!Cargo.toml
+!Cargo.lock
+!src/
+
+# embed_migrations!("migrations") in src/lib.rs reads this directory at compile
+# time, so the build fails without it.
+!migrations/
+
+# rust-toolchain.toml is deliberately absent: the image pins its compiler with
+# RUSTUP_TOOLCHAIN, and letting the file in would make `stable` fight that pin.
