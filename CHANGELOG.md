@@ -13,6 +13,14 @@ Two sections are added to the six of Keep a Changelog: "Documentation" (client
 examples and operations instructions — changes for the consumer of the service)
 and "Internal" (CI, tests, formatting).
 
+## [2.0.13] - 2026-08-29
+
+### Internal
+
+- bump sha1 from 0.10.7 to 0.11.0
+- release 2.0.12
+- renumber the release to 2.0.13, taken by JWKSAPP-38
+
 ## [2.0.12] - 2026-08-29
 
 ### Internal
