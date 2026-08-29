@@ -2,7 +2,10 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:13
+    # Pinned to a patch version: a floating tag (`postgres:13`, let alone
+    # `:latest`) silently changes the database under the dev stand on the next
+    # `docker compose pull`. Dependabot keeps the pin moving.
+    image: postgres:13.23
     environment:
       POSTGRES_USER: user  # PostgreSQL username
       POSTGRES_PASSWORD: password  # PostgreSQL password
@@ -32,7 +35,7 @@ services:
       - db  # Depend on the PostgreSQL service
 
   swagger-ui:
-    image: swaggerapi/swagger-ui  # Swagger UI image
+    image: swaggerapi/swagger-ui:v5.32.14  # Swagger UI image, pinned like the database
     ports:
       - "8081:8080"  # Expose Swagger UI port
     environment:
