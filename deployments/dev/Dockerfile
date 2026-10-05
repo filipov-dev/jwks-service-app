@@ -5,7 +5,7 @@
 # rust-toolchain.toml (rustup switches to it inside the mounted /app). It has to
 # stay close to current stable: cargo-audit below is built from source here, and
 # its dependency tree already refuses anything older than rustc 1.96.
-FROM rust:1.98-bookworm AS dev
+FROM rust:1.99-bookworm AS dev
 
 # Install dependencies for PostgreSQL
 RUN apt-get update && apt-get install -y \
