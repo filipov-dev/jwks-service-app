@@ -40,7 +40,7 @@ services:
       - db  # Depend on the PostgreSQL service
 
   swagger-ui:
-    image: swaggerapi/swagger-ui:v5.32.14  # Swagger UI image, pinned like the database
+    image: swaggerapi/swagger-ui:v5.33.1  # Swagger UI image, pinned like the database
     ports:
       - "8081:8080"  # Expose Swagger UI port
     environment:
